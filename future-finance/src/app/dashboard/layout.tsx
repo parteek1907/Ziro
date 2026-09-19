@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/AuthContext"
+import MentorChat from "@/components/MentorChat"
 
 export default function DashboardLayout({
   children,
@@ -148,6 +149,8 @@ export default function DashboardLayout({
         </main>
 
       </div>
+      {/* AI Mentor floating chat — available on all dashboard pages */}
+      <MentorChat />
     </div>
   )
 }
