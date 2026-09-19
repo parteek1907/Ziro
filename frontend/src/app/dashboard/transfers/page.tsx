@@ -16,6 +16,7 @@ import type {
 import Link from "next/link"
 import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
 import { ZiroTicket } from "@/components/ui/ziro-ticket"
+import { useFinance } from "@/lib/FinanceContext"
 
 // ─── Constants ───────────────────────────────────────────────
 const CONTACTS = [
@@ -25,7 +26,7 @@ const CONTACTS = [
   { id: 4, handle: "@nipun", name: "Nipun", img: "https://i.pravatar.cc/150?img=33" }
 ]
 
-const FUNDING_SOURCES = [
+const CARDS = [
   { 
     id: "vault", 
     name: "ZIROVAULT", 
@@ -46,8 +47,10 @@ const FUNDING_SOURCES = [
   }
 ]
 
-const CURRENCIES = ["USD", "EUR", "GBP", "USDC"]
-const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" }
+const CURRENCIES = ["USD", "EUR", "GBP", "INR"]
+const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", INR: "₹" }
+const EXCHANGE_RATES: Record<string, number> = { USD: 1, EUR: 43.53/50, GBP: 37.35/50, INR: 4796.78/50 }
+const FEE_THRESHOLDS: Record<string, number> = { USD: 50, EUR: 43.53, GBP: 37.35, INR: 4796.78 }
 
 // ─── Types ───────────────────────────────────────────────────
 type PageView = "wallet" | "form" | "checking" | "route" | "confirm" | "done"
@@ -154,11 +157,45 @@ export default function TransfersPage() {
   const [isRecurring, setIsRecurring] = useState(false)
 
   const [recipientState, setRecipientState] = useState<RecipientState>("idle")
-  const [toast, setToast] = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
+  const [toast, setToast]                   = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
+  
+  const { totalBalance, deductBalance, addTransaction } = useFinance()
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
   const [showRiskModal, setShowRiskModal] = useState(false)
   const [riskWarnings, setRiskWarnings] = useState<string[]>([])
   const [showPinModal, setShowPinModal] = useState(false)
+
+  // Dynamically calculate the primary pocket balance (total minus the static JPM Chase card)
+  const ziroVaultBalance = totalBalance - 12400.00;
+  
+  const FUNDING_SOURCES = [
+    { 
+      id: "vault", 
+      name: "ZIROVAULT", 
+      type: "Pocket", 
+      balance: `$${Math.max(0, ziroVaultBalance).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 
+      last4: "1234", 
+      icon: "💎",
+      holder: "OLIVIA RHYE",
+      cardNumber: "1234 1234 1234 1234",
+      expiry: "06/28",
+      cssClass: "card-purple"
+    },
+    { 
+      id: "card", 
+      name: "JPM Chase", 
+      type: "Credit", 
+      balance: "$12,400.00", 
+      last4: "3090", 
+      icon: "🏛️",
+      holder: "ZAHRA MOHAMADI",
+      cardNumber: "1253 5432 3521 3090",
+      expiry: "09/30",
+      cssClass: "card-blue"
+    },
+  ]
+
+  const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
   const [isExecuting, setIsExecuting] = useState(false)
   const [executionStatus, setExecutionStatus] = useState("")
 
@@ -298,12 +335,30 @@ export default function TransfersPage() {
   // "Confirm & Send" on the confirmation card
   const handleConfirmSend = useCallback(async () => {
     try {
+      const totalAmt = parseFloat(amount) || 0
+      const feeThreshold = FEE_THRESHOLDS[currency] || 50
+      const feesAmt = totalAmt > feeThreshold ? totalAmt * 0.002 : 0
+      const usdToDeduct = (totalAmt + feesAmt) / (EXCHANGE_RATES[currency] || 1)
+      
+      deductBalance(usdToDeduct)
+      
+      addTransaction({
+        id: `tx-${Math.floor(Math.random() * 10000)}`,
+        type: "Transfer",
+        to: recipient,
+        route: `${currency} → ${currency}`,
+        amount: `-${CURRENCY_SYMBOLS[currency] || ""}${(totalAmt + feesAmt).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+        status: "Completed",
+        time: "Just now",
+        ref: `ZR-${Math.floor(1000 + Math.random() * 9000)}`
+      })
+      
       setView("done")
     } catch (err: any) {
       console.error("Payment execution error:", err)
       setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
     }
-  }, [activeUserId, recipient, amount, currency, note, fundingSource])
+  }, [activeUserId, recipient, amount, currency, note, fundingSource, deductBalance, addTransaction])
 
   const handleRiskProceed = useCallback(async () => {
     setShowRiskModal(false)
@@ -330,10 +385,12 @@ export default function TransfersPage() {
   }
 
   const totalAmount = parseFloat(amount) || 0
-  const feesAmount = totalAmount > 50 ? totalAmount * 0.002 : 0
+  const feeThreshold = FEE_THRESHOLDS[currency] || 50
+  const feesAmount = totalAmount > feeThreshold ? totalAmount * 0.002 : 0
   const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
 
-  const currentBalance = fundingSource ? parseFloat(fundingSource.balance.replace(/[^0-9.]/g, '')) : 0
+  const currentBalanceUSD = totalBalance // ALWAYS use total balance from context
+  const currentBalance = currentBalanceUSD * (EXCHANGE_RATES[currency] || 1)
   const isInsufficientFunds = (totalAmount + feesAmount) > currentBalance
 
   return (
@@ -495,7 +552,7 @@ export default function TransfersPage() {
               
               <div className="ziro-pocket">
                 <div className="ziro-pocket-content">
-                  <div className="ziro-balance-real">$54,904.80</div>
+                  <div className="ziro-balance-real">${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div className="ziro-balance-label">Total Balance</div>
                 </div>
               </div>
@@ -547,7 +604,7 @@ export default function TransfersPage() {
                 <div className="flex items-center justify-center gap-2">
                   <input
                     type="text" inputMode="decimal"
-                    value={amount ? `${currencySymbol}${amount}${currency === "USDC" ? " USDC" : ""}` : ""}
+                    value={amount ? `${currencySymbol}${amount}` : ""}
                     onChange={(e) => {
                       let val = e.target.value.replace(/[^0-9.]/g, '');
                       const parts = val.split('.'); if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
@@ -561,8 +618,8 @@ export default function TransfersPage() {
                 </div>
                 
                 {isInsufficientFunds && (
-                  <div className="text-red-500 text-xs font-bold mt-2 text-center absolute w-full left-0 bottom-[-5px]">
-                    Insufficient funds (Max: {fundingSource?.balance})
+                  <div className="text-red-500 text-xs font-bold mt-2 text-center absolute w-full left-0 bottom-[-20px]">
+                    Insufficient funds (Max: {CURRENCY_SYMBOLS[currency]}{(currentBalance).toLocaleString(undefined, {maximumFractionDigits: 2})})
                   </div>
                 )}
 
