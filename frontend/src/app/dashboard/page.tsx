@@ -104,15 +104,21 @@ export default function DashboardOverview() {
 
     let currentWallet = "0xDemoWallet123"
     try {
-      const { getUserWallets } = await import("@/lib/api")
+      const { getUserWallets, connectWallet } = await import("@/lib/api")
       const wallets = await getUserWallets()
       if (wallets && wallets.length > 0) {
         currentWallet = wallets[0].public_address
-        setWalletAddress(currentWallet)
+      } else {
+        // Auto-create a wallet if none exists
+        const newWallet = await connectWallet({ chain: "polygon" })
+        if (newWallet && newWallet.public_address) {
+          currentWallet = newWallet.public_address
+        }
       }
     } catch (e) {
-      console.warn("Could not fetch wallet", e)
+      console.warn("Could not fetch or create wallet", e)
     }
+    setWalletAddress(currentWallet)
 
     // Balance
     setLoadingBalance(true)
@@ -150,7 +156,7 @@ export default function DashboardOverview() {
     ? "$54,904.80"   // graceful fallback
     : "$0.00"
 
-  const displayScore = trustScore
+  const displayScore = trustScore?.trust_score != null
     ? trustScore.trust_score.toString()
     : trustError
     ? "740"           // graceful fallback
@@ -194,10 +200,13 @@ export default function DashboardOverview() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="mt-3 flex items-center gap-2 bg-white/50 border rounded-xl px-3 py-1.5 w-fit shadow-sm"
+              className="mt-4 flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 w-fit shadow-md group"
             >
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-xs font-mono text-slate-600 select-all">{walletAddress}</span>
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mr-2">Polygon Connected</span>
+              <span className="text-xs font-mono text-slate-300 group-hover:text-white transition-colors select-all">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
             </motion.div>
           )}
         </div>

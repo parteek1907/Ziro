@@ -9,9 +9,19 @@ class RouteType(str, Enum):
 
 class RouteComparisonRequest(BaseModel):
     amount: float = Field(..., gt=0, description="Amount to transfer")
-    source_currency: str = Field(..., description="Source fiat or crypto currency")
-    target_currency: str = Field(..., description="Target fiat or crypto currency")
+    source_currency: str = Field(default="USD", description="Source fiat or crypto currency")
+    target_currency: str = Field(default="USD", description="Target fiat or crypto currency")
     preference: Optional[str] = Field(default="lowest_cost", description="e.g. lowest_cost, fastest_settlement")
+    currency: Optional[str] = None
+    destination_country: Optional[str] = None
+
+    def __init__(self, **data):
+        if "currency" in data:
+            if "source_currency" not in data:
+                data["source_currency"] = data["currency"]
+            if "target_currency" not in data:
+                data["target_currency"] = data["currency"]
+        super().__init__(**data)
 
 class PaymentRoute(BaseModel):
     route: RouteType

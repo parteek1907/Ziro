@@ -7,10 +7,18 @@ class RecipientCheckStatus(str, Enum):
     WARNING = "WARNING"
     BLOCKED = "BLOCKED"
 
+from typing import List, Optional
+
 class RecipientCheckRequest(BaseModel):
-    user_id: str = Field(..., description="ID of the sender")
+    user_id: str = Field(default="demo-user", description="ID of the sender")
     recipient_address: str = Field(..., description="The wallet address to check")
-    chain: str = Field(..., description="The target blockchain network")
+    chain: str = Field(default="polygon", description="The target blockchain network")
+    sender_user_id: Optional[str] = None
+
+    def __init__(self, **data):
+        if "sender_user_id" in data and "user_id" not in data:
+            data["user_id"] = data["sender_user_id"]
+        super().__init__(**data)
 
 class RecipientCheckResponse(BaseModel):
     status: RecipientCheckStatus

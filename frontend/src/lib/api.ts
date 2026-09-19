@@ -105,16 +105,18 @@ export type OfflineSyncResponse = {
 }
 
 export type WalletConnectRequest = {
-  chain: "polygon" | "stellar" | "ethereum"
-  wallet_address: string
-  user_id: string
+  chain: "polygon" | "stellar" | "ethereum" | string
+  public_address?: string
+  wallet_type?: string
 }
 
 export type WalletConnectResponse = {
-  wallet_id: string
+  id: string
+  user_id: string
   chain: string
-  address: string
-  connected_at: string
+  public_address: string
+  wallet_type: string
+  is_verified: boolean
 }
 
 export type PaymentCreateRequest = {
@@ -187,7 +189,9 @@ export async function checkRecipient(
     method: "POST",
     body: JSON.stringify({
       recipient_address: recipientAddress,
+      user_id: senderUserId,
       sender_user_id: senderUserId,
+      chain: "polygon",
     }),
   })
 }
@@ -202,7 +206,11 @@ export async function analyzeRisk(payload: {
 }): Promise<RiskAnalysisResponse> {
   return request<RiskAnalysisResponse>("/api/v1/risk/analyze", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      payment_intent: payload.note || "transfer",
+      chain: "polygon",
+    }),
   })
 }
 
@@ -215,7 +223,12 @@ export async function compareRoutes(payload: {
 }): Promise<CompareRoutesResponse> {
   return request<CompareRoutesResponse>("/api/v1/payments/compare-routes", {
     method: "POST",
-    body: JSON.stringify({ preference: "lowest_cost", ...payload }),
+    body: JSON.stringify({
+      preference: "lowest_cost",
+      source_currency: payload.currency,
+      target_currency: payload.currency,
+      ...payload,
+    }),
   })
 }
 

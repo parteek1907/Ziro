@@ -39,62 +39,100 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const DEFAULT_DEV_USER: User = {
+  uid: "dev-user-123",
+  email: "aditya@ziro.app",
+  displayName: "Aditya",
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("mockUser");
-    }
+    // If real Firebase Auth is configured, use it
+    if (auth) {
+      // Check for redirect result if popup was blocked and redirect was used
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result?.user) {
+            setUser({
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("[AuthContext] Redirect login error:", error);
+        });
 
-    if (!auth) {
-      console.warn("[AuthContext] Firebase auth is not initialized.");
-      setLoading(false);
-      return;
-    }
-
-    // Check for redirect result if popup was blocked and redirect was used
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          console.log("[AuthContext] Redirect login successful:", result.user.email);
+      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (firebaseUser) {
           setUser({
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
           });
+        } else {
+          setUser(null);
         }
-      })
-      .catch((error) => {
-        console.error("[AuthContext] Redirect login error:", error);
+        setLoading(false);
       });
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("[AuthContext] onAuthStateChanged:", firebaseUser?.email);
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
+      return () => unsubscribe();
+    }
 
-    return () => unsubscribe();
+    // Local / Dev Mode fallback when Firebase keys are not in .env.local
+    console.info("[AuthContext] Running in Local Dev Mode (Firebase keys not detected in .env.local).");
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("ziro_user") : null;
+      if (stored) {
+        setUser(JSON.parse(stored));
+      } else {
+        setUser(DEFAULT_DEV_USER);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ziro_user", JSON.stringify(DEFAULT_DEV_USER));
+        }
+      }
+    } catch {
+      setUser(DEFAULT_DEV_USER);
+    }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, pass: string) => {
-    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
-    await signInWithEmailAndPassword(auth, email, pass);
+    if (auth) {
+      await signInWithEmailAndPassword(auth, email, pass);
+      return;
+    }
+    // Local dev login
+    const devUser: User = {
+      uid: "dev-" + Math.random().toString(36).substring(2, 9),
+      email: email || "aditya@ziro.app",
+      displayName: email ? email.split("@")[0] : "Aditya",
+    };
+    setUser(devUser);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ziro_user", JSON.stringify(devUser));
+    }
   };
 
   const signup = async (email: string, pass: string) => {
-    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
-    await createUserWithEmailAndPassword(auth, email, pass);
+    if (auth) {
+      await createUserWithEmailAndPassword(auth, email, pass);
+      return;
+    }
+    // Local dev signup
+    const devUser: User = {
+      uid: "dev-" + Math.random().toString(36).substring(2, 9),
+      email: email || "aditya@ziro.app",
+      displayName: email ? email.split("@")[0] : "Aditya",
+    };
+    setUser(devUser);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ziro_user", JSON.stringify(devUser));
+    }
   };
 
   const logout = async () => {
@@ -102,26 +140,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signOut(auth);
     }
     setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ziro_user");
+    }
   };
 
   const loginWithGoogle = async () => {
-    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-    
-    console.log("[AuthContext] Triggering Google Sign-in...");
-    try {
-      const res = await signInWithPopup(auth, provider);
-      console.log("[AuthContext] Google sign-in popup successful:", res.user.email);
-    } catch (err: any) {
-      console.warn("[AuthContext] signInWithPopup failed:", err.code, err.message);
-      // Fallback to redirect if popup was blocked by browser
-      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
-        console.log("[AuthContext] Falling back to signInWithRedirect...");
-        await signInWithRedirect(auth, provider);
-        return;
+    if (auth) {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (err: any) {
+        if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw err;
       }
-      throw err;
+      return;
+    }
+    // Local dev Google login
+    const googleDevUser: User = {
+      uid: "google-dev-123",
+      email: "aditya.google@ziro.app",
+      displayName: "Aditya (Google)",
+    };
+    setUser(googleDevUser);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ziro_user", JSON.stringify(googleDevUser));
     }
   };
 

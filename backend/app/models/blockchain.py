@@ -9,6 +9,8 @@ class TransactionState(str, Enum):
     BROADCAST = "BROADCAST"
     CONFIRMING = "CONFIRMING"
     CONFIRMED = "CONFIRMED"
+    SETTLED = "SETTLED"
+    PENDING = "PENDING"
     FAILED = "FAILED"
 
 class BlockchainTransaction(BaseModel):
@@ -21,6 +23,7 @@ class BlockchainTransaction(BaseModel):
     amount: float
     network_fee: float
     tx_hash: Optional[str] = None
+    raw_tx: Optional[str] = None
     status: TransactionState = TransactionState.CREATED
     created_at: datetime = Field(default_factory=datetime.utcnow)
     confirmed_at: Optional[datetime] = None

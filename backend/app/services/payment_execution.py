@@ -19,6 +19,13 @@ class PaymentExecutionService:
         payment = PaymentRecord(**request.model_dump())
         payment.log_audit("Payment created in system.")
         payment.state = PaymentState.VALIDATING
+
+        # Resolve username handle (e.g. @amara -> 0x...)
+        from app.services.security import USERNAME_REGISTRY
+        if payment.recipient_address.startswith("@") and payment.recipient_address.lower() in USERNAME_REGISTRY:
+            resolved = USERNAME_REGISTRY[payment.recipient_address.lower()]
+            payment.log_audit(f"Resolved Ziro Tag {payment.recipient_address} to {resolved}")
+            payment.recipient_address = resolved
         
         # 1. Address Security Check
         addr_req = RecipientCheckRequest(
@@ -81,7 +88,7 @@ class PaymentExecutionService:
         if payment.state == PaymentState.SETTLED:
             return payment # Idempotent safety
 
-        if payment.state not in [PaymentState.RISK_APPROVED, PaymentState.TRANSACTION_CREATED, PaymentState.SIGNED, PaymentState.BROADCAST_FAILED, PaymentState.CONFIRMATION_FAILED]:
+        if payment.state not in [PaymentState.RISK_APPROVED, PaymentState.TRANSACTION_CREATED, PaymentState.SIGNED, PaymentState.BROADCAST_FAILED, PaymentState.CONFIRMATION_FAILED, PaymentState.AWAITING_CONFIRMATION]:
             raise ValueError(f"Payment cannot be executed from state {payment.state}")
 
         # Ensure idempotency logic during transaction creation

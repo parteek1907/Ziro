@@ -8,12 +8,18 @@ class RiskLevel(str, Enum):
     HIGH = "HIGH"
 
 class RiskAnalysisRequest(BaseModel):
-    user_id: str = Field(..., description="ID of the sender")
+    user_id: str = Field(default="demo-user", description="ID of the sender")
     recipient: str = Field(..., description="Recipient address or identifier")
     amount: float = Field(..., gt=0, description="Transaction amount")
-    currency: str = Field(..., description="Transaction currency")
-    payment_intent: str = Field(..., description="Reason or context for the payment")
-    chain: str = Field(..., description="Target blockchain or simulation")
+    currency: str = Field(default="USD", description="Transaction currency")
+    payment_intent: str = Field(default="transfer", description="Reason or context for the payment")
+    chain: str = Field(default="polygon", description="Target blockchain or simulation")
+    note: Optional[str] = None
+
+    def __init__(self, **data):
+        if "note" in data and "payment_intent" not in data:
+            data["payment_intent"] = data["note"] or "transfer"
+        super().__init__(**data)
 
 class RiskAnalysisResponse(BaseModel):
     risk_level: RiskLevel
