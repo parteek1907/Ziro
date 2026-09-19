@@ -109,17 +109,7 @@ export default function DashboardOverview() {
     }
     setWalletAddress(currentWallet)
 
-    // Balance
-    setLoadingBalance(true)
-    setBalanceError(false)
-    try {
-      const data = await getBalance(currentWallet)
-      setBalance(data)
-    } catch {
-      setBalanceError(true)
-    } finally {
-      setLoadingBalance(false)
-    }
+    // Balance is now handled globally via useFinance()
     // TrustScore
     setLoadingTrust(true)
     setTrustError(false)
