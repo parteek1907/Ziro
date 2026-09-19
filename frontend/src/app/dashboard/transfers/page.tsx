@@ -413,7 +413,7 @@ export default function TransfersPage() {
               
               <div className="ziro-pocket">
                 <div className="ziro-pocket-content">
-                  <div className="ziro-balance-real">$12,450.00</div>
+                  <div className="ziro-balance-real">$54,904.80</div>
                   <div className="ziro-balance-label">Total Balance</div>
                 </div>
               </div>
