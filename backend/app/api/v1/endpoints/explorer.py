@@ -414,7 +414,7 @@ async def get_explorer_ui():
                             <div class="mono-text" style="color: #94a3b8;">${tx.block_number}</div>
                             <div class="mono-text hash" title="${tx.from_address}">${truncate(tx.from_address)}</div>
                             <div class="mono-text hash" title="${tx.to_address}">${truncate(tx.to_address)}</div>
-                            <div style="font-weight: 600;">$${tx.amount.toFixed(2)} ${tx.currency}</div>
+                            <div class="mono-text hash" title="Encrypted Amount">0x${btoa(tx.amount.toString()).substring(0,8)}...</div>
                             <div><span class="badge ${statusClass}">${statusText}</span></div>
                             <div style="color: #94a3b8; font-size: 0.875rem;">${formatDate(tx.timestamp)}</div>
                         `;
