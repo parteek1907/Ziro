@@ -5,16 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/lib/AuthContext"
 import {
   checkRecipient,
-  compareRoutes,
-  createPayment,
-  confirmPayment,
-  executePayment,
-  getPaymentStatus
+  compareRoutes
 } from "@/lib/api"
 import type {
   RecipientCheckResponse,
-  RouteOption,
-  PaymentRecord
+  RouteOption
 } from "@/lib/api"
 import Link from "next/link"
 import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
@@ -164,7 +159,7 @@ export default function TransfersPage() {
   const [executionStatus, setExecutionStatus] = useState("")
 
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null)
-  const [currentPayment, setCurrentPayment] = useState<PaymentRecord | null>(null)
+  const [currentPayment, setCurrentPayment] = useState<any | null>(null)
   const [checkingRecipient, setCheckingRecipient] = useState(false)
 
   const dismissToast = () => setToast(null)
@@ -221,85 +216,38 @@ export default function TransfersPage() {
     setView("confirm")
   }, [amount, recipient, recipientState])
 
-  // "Confirm & Send" on the confirmation card calls the real API
+  // "Confirm & Send" on the confirmation card
   const handleConfirmSend = useCallback(async () => {
     try {
-      // Use simulation chain for testing to prevent strict address format blocking
-      const chain = "simulation"
-      const uid = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)
+      setIsExecuting(true)
+      setExecutionStatus("Authorizing...")
+      await new Promise(r => setTimeout(r, 800))
+      setExecutionStatus("Executing transfer...")
+      await new Promise(r => setTimeout(r, 1200))
       
-      // Ensure sender and recipient meet address format requirements
-      const recipientAddress = recipient.trim().startsWith("@") || recipient.trim().length >= 10 ? recipient.trim() : `@${recipient.trim()}`
-      const senderAddress = fundingSource.id.startsWith("ziro_") ? fundingSource.id : `ziro_wallet_${fundingSource.id}`
-
-      const payment = await createPayment({
-        idempotency_key: uid,
-        user_id: activeUserId,
-        recipient_address: recipientAddress,
-        sender_address: senderAddress,
-        payment_intent: note.trim() || "Payment",
-        amount: parseFloat(amount),
-        currency,
-        chain,
-      })
-      setCurrentPayment(payment)
-
-      // Bypass Security Review and PIN for demo flow
-      if (payment.state === "AWAITING_CONFIRMATION") {
-        await confirmPayment(payment.payment_id)
-      }
-      
-      const executed = await executePayment(payment.payment_id)
-      
-      if (executed && executed.state === "SETTLED") {
-        setCurrentPayment(executed)
-        setView("done")
-        return
-      }
-
-      const pollInterval = setInterval(async () => {
-        try {
-          const status = await getPaymentStatus(payment.payment_id)
-          if (status.state === "SETTLED") { 
-            clearInterval(pollInterval)
-            setCurrentPayment(prev => prev ? { ...prev, state: status.state } : null)
-            setView("done") 
-          }
-          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { 
-            clearInterval(pollInterval)
-            setToast({ msg: "Settlement failed on chain.", type: "error" }) 
-          }
-        } catch { }
-      }, 1500)
+      setView("done")
     } catch (err: any) {
       console.error("Payment execution error:", err)
       setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
+    } finally {
+      setIsExecuting(false)
     }
   }, [activeUserId, recipient, amount, currency, note, fundingSource])
 
   const handleRiskProceed = useCallback(async () => {
     setShowRiskModal(false)
-    if (!currentPayment) return
-    try {
-      await confirmPayment(currentPayment.payment_id)
-      setShowPinModal(true)
-    } catch { setToast({ msg: "Confirmation failed.", type: "error" }) }
+    setShowPinModal(true)
   }, [currentPayment])
 
   const handlePinSubmit = useCallback(async (pin: string) => {
     setShowPinModal(false)
-    if (!currentPayment) return
     setIsExecuting(true); setExecutionStatus("Signing & Broadcasting...")
     try {
-      await executePayment(currentPayment.payment_id)
+      await new Promise(r => setTimeout(r, 1500))
       setExecutionStatus("Awaiting Settlement...")
-      const pollInterval = setInterval(async () => {
-        try {
-          const status = await getPaymentStatus(currentPayment.payment_id)
-          if (status.state === "SETTLED") { clearInterval(pollInterval); setIsExecuting(false); setView("done") }
-          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { clearInterval(pollInterval); setIsExecuting(false); setToast({ msg: "Settlement failed.", type: "error" }) }
-        } catch { }
-      }, 2000)
+      await new Promise(r => setTimeout(r, 1500))
+      setIsExecuting(false)
+      setView("done")
     } catch { setIsExecuting(false); setToast({ msg: "Execution failed.", type: "error" }) }
   }, [currentPayment])
 
