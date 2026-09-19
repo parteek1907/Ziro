@@ -17,7 +17,10 @@ class SimulationAdapter(ChainAdapter):
         self._transactions: Dict[str, TransactionState] = {}
 
     def validate_address(self, address: str) -> bool:
-        return len(address) >= 10  # Simple mock validation
+        if not address:
+            return False
+        addr = str(address).strip()
+        return addr.startswith("@") or len(addr) >= 10
 
     def estimate_fee(self) -> float:
         return 0.001
@@ -60,10 +63,12 @@ class SimulationAdapter(ChainAdapter):
         tx.confirmed_at = datetime.utcnow()
         self._transactions[tx.tx_hash] = tx.status
         
-        # Simulate balance update
-        if tx.recipient not in self._balances:
-            self._balances[tx.recipient] = {}
-        self._balances[tx.recipient][tx.asset] = self.get_balance(tx.recipient, tx.asset) + tx.amount
+        # Simulate balance update: credit recipient, debit sender
+        recipient_balance = self.get_balance(tx.recipient, tx.asset)
+        self._balances[tx.recipient][tx.asset] = recipient_balance + tx.amount
+
+        sender_balance = self.get_balance(tx.sender, tx.asset)
+        self._balances[tx.sender][tx.asset] = max(0.0, sender_balance - (tx.amount + tx.network_fee))
         
         return tx
 
@@ -75,6 +80,7 @@ class SimulationAdapter(ChainAdapter):
 
     def get_balance(self, address: str, asset: str) -> float:
         if address not in self._balances:
-            # Seed test address with some fake balance
-            self._balances[address] = {asset: 1000.0}
-        return self._balances[address].get(asset, 0.0)
+            self._balances[address] = {}
+        if asset not in self._balances[address]:
+            self._balances[address][asset] = 1000.0
+        return self._balances[address][asset]

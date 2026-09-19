@@ -194,31 +194,6 @@ export default function ConsultantsPage() {
       <div id="consultants-list" className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-800">Find the right consultant</h3>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-64">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search consultants..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/60 border border-white/50 rounded-full py-2 pl-9 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4a72ff]/30 text-slate-700 placeholder:text-slate-400 shadow-sm"
-              />
-            </div>
-            <button className="bg-white/60 border border-white/50 p-2 rounded-full text-slate-600 hover:text-slate-800 hover:bg-white transition-colors shadow-sm shrink-0">
-              <Filter size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Filters bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {["All Specialties", "Available Now", "English", "30 mins"].map((f, i) => (
-            <button key={i} className="whitespace-nowrap px-4 py-1.5 rounded-full border border-slate-200 bg-white/40 text-xs font-semibold text-slate-600 hover:bg-white hover:border-[#4a72ff]/30 transition-all">
-              {f}
-            </button>
-          ))}
         </div>
 
         {/* Consultant Grid */}

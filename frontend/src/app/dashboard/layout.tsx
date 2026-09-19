@@ -48,7 +48,7 @@ export default function DashboardLayout({
         <aside className="w-[280px] bg-black/5 border-r border-white/30 flex flex-col justify-between hidden md:flex shrink-0">
           <div>
             <div className="h-24 flex items-center px-6 pt-2">
-              <Link href="/" className="flex items-center">
+              <Link href="/dashboard" className="flex items-center">
                 <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-left" />
               </Link>
             </div>

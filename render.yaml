@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ziro-backend
+    env: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && fastapi run app/main.py --port $PORT --host 0.0.0.0"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: CORS_ORIGINS
+        value: "*"

@@ -94,7 +94,13 @@ export default function DashboardOverview() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   
   const fetchData = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setLoadingBalance(false)
+      setBalanceError(true)
+      setLoadingTrust(false)
+      setTrustError(true)
+      return
+    }
 
     let currentWallet = "0xDemoWallet123"
     try {
@@ -141,7 +147,7 @@ export default function DashboardOverview() {
   const displayBalance = balance
     ? `$${balance.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : balanceError
-    ? "$42,280.50"   // graceful fallback
+    ? "$54,904.80"   // graceful fallback
     : "$0.00"
 
   const displayScore = trustScore

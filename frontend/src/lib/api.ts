@@ -7,15 +7,23 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    ...options,
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`API ${path} failed (${res.status}): ${err}`)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 3000)
+  
+  try {
+    const res = await fetch(`${BASE}${path}`, {
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      signal: controller.signal,
+      ...options,
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`API ${path} failed (${res.status}): ${err}`)
+    }
+    return res.json() as Promise<T>
+  } finally {
+    clearTimeout(timeoutId)
   }
-  return res.json() as Promise<T>
 }
 
 // ─── Types ──────────────────────────────────────────────────
