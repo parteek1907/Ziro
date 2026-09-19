@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { auth } from "./firebase";
@@ -6,14 +6,17 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
-  signOut
+  signOut,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider
 } from "firebase/auth";
 
 type User = {
   uid: string;
   email: string | null;
   displayName?: string | null;
-  isMock?: boolean;
 };
 
 type AuthContextType = {
@@ -22,6 +25,7 @@ type AuthContextType = {
   login: (email: string, pass: string) => Promise<void>;
   signup: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   signup: async () => {},
   logout: async () => {},
+  loginWithGoogle: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -38,69 +43,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if we are in Mock mode (no real Firebase config)
-  const isMockMode = !auth;
-
   useEffect(() => {
-    if (!isMockMode) {
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if (firebaseUser) {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("mockUser");
+    }
+
+    if (!auth) {
+      console.warn("[AuthContext] Firebase auth is not initialized.");
+      setLoading(false);
+      return;
+    }
+
+    // Check for redirect result if popup was blocked and redirect was used
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("[AuthContext] Redirect login successful:", result.user.email);
           setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
           });
-        } else {
-          setUser(null);
         }
-        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("[AuthContext] Redirect login error:", error);
       });
-      return () => unsubscribe();
-    } else {
-      // Mock mode initialization
-      const storedMockUser = localStorage.getItem("mockUser");
-      if (storedMockUser) {
-        setUser(JSON.parse(storedMockUser));
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("[AuthContext] onAuthStateChanged:", firebaseUser?.email);
+      if (firebaseUser) {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+        });
+      } else {
+        setUser(null);
       }
       setLoading(false);
-    }
-  }, [isMockMode]);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const login = async (email: string, pass: string) => {
-    if (!isMockMode) {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } else {
-      if (email === "demo@futurefinance.com" && pass === "password123") {
-        const mockUser = { uid: "mock-uid-123", email, isMock: true };
-        setUser(mockUser);
-        localStorage.setItem("mockUser", JSON.stringify(mockUser));
-      } else {
-        throw new Error("Invalid demo credentials. Use demo@futurefinance.com / password123");
-      }
-    }
+    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signup = async (email: string, pass: string) => {
-    if (!isMockMode) {
-      await createUserWithEmailAndPassword(auth, email, pass);
-    } else {
-      const mockUser = { uid: "mock-uid-new", email, isMock: true };
-      setUser(mockUser);
-      localStorage.setItem("mockUser", JSON.stringify(mockUser));
-    }
+    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
+    await createUserWithEmailAndPassword(auth, email, pass);
   };
 
   const logout = async () => {
-    if (!isMockMode) {
+    if (auth) {
       await signOut(auth);
-    } else {
-      setUser(null);
-      localStorage.removeItem("mockUser");
+    }
+    setUser(null);
+  };
+
+  const loginWithGoogle = async () => {
+    if (!auth) throw new Error("Firebase Auth is not initialized. Check your .env.local file.");
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    
+    console.log("[AuthContext] Triggering Google Sign-in...");
+    try {
+      const res = await signInWithPopup(auth, provider);
+      console.log("[AuthContext] Google sign-in popup successful:", res.user.email);
+    } catch (err: any) {
+      console.warn("[AuthContext] signInWithPopup failed:", err.code, err.message);
+      // Fallback to redirect if popup was blocked by browser
+      if (err.code === "auth/popup-blocked" || err.code === "auth/cancelled-popup-request") {
+        console.log("[AuthContext] Falling back to signInWithRedirect...");
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw err;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, loginWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

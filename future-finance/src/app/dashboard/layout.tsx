@@ -2,13 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/lib/AuthContext"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const { user } = useAuth()
   const pathname = usePathname()
+  
+  const displayName = user?.displayName || "User"
+  const email = user?.email || ""
+  const initials = displayName.substring(0, 2).toUpperCase() || "US"
 
   const navItems = [
     { name: "Overview", href: "/dashboard", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
@@ -65,12 +71,12 @@ export default function DashboardLayout({
           <div className="mt-4 flex items-center gap-3 px-4">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2161E8] to-[#00E5FF] p-[2px]">
               <div className="w-full h-full rounded-full bg-[#0B0B0D] border-2 border-[#0B0B0D] flex items-center justify-center font-bold text-sm">
-                JD
+                {initials}
               </div>
             </div>
-            <div>
-              <div className="text-sm font-bold text-white">Jane Doe</div>
-              <div className="text-xs text-[#8B8F98]">jane@ziro.app</div>
+            <div className="flex flex-col min-w-0 overflow-hidden">
+              <div className="text-sm font-bold text-white truncate">{displayName}</div>
+              <div className="text-xs text-[#8B8F98] truncate">{email}</div>
             </div>
           </div>
         </div>
@@ -96,7 +102,7 @@ export default function DashboardLayout({
             </button>
             <div className="md:hidden w-10 h-10 rounded-full bg-gradient-to-tr from-[#2161E8] to-[#00E5FF] p-[2px]">
               <div className="w-full h-full rounded-full bg-[#0B0B0D] flex items-center justify-center font-bold text-sm">
-                JD
+                {initials}
               </div>
             </div>
           </div>

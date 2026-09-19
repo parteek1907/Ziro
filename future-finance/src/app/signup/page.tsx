@@ -1,9 +1,54 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { useAuth } from "@/lib/AuthContext"
+import { useRouter } from "next/navigation"
 
 export default function SignupPage() {
+  const { signup, loginWithGoogle } = useAuth();
+  const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await signup(email, password);
+      // Optional: Update profile with first and last name here if needed
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleGoogleSignup = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Google signup error:", err);
+      if (err.code === "auth/popup-closed-by-user") {
+        setError("Sign-up was cancelled.");
+      } else {
+        setError(err.message || "Failed to sign in with Google");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
   return (
     <div className="min-h-screen bg-[#0B0B0D] flex">
       
@@ -44,12 +89,20 @@ export default function SignupPage() {
           <h1 className="text-white text-3xl font-bold tracking-tight mb-2">Create an account</h1>
           <p className="text-[#8B8F98] mb-8">Enter your details to get started with Ziro.</p>
 
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 text-red-500 rounded-xl text-sm font-medium border border-red-500/20">
+              {error}
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={handleEmailSignup}>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-white/80 text-sm font-medium tracking-wide">First name</label>
                 <input 
                   type="text" 
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Jane" 
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
                   required
@@ -59,6 +112,8 @@ export default function SignupPage() {
                 <label className="text-white/80 text-sm font-medium tracking-wide">Last name</label>
                 <input 
                   type="text" 
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   placeholder="Doe" 
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
                   required
@@ -70,6 +125,8 @@ export default function SignupPage() {
               <label className="text-white/80 text-sm font-medium tracking-wide">Email address</label>
               <input 
                 type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com" 
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
                 required
@@ -80,15 +137,17 @@ export default function SignupPage() {
               <label className="text-white/80 text-sm font-medium tracking-wide">Password</label>
               <input 
                 type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Create a password (min. 8 chars)" 
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
                 required
               />
             </div>
 
-            <Link href="/dashboard" className="w-full bg-white text-black font-bold text-base rounded-xl px-4 py-3.5 hover:bg-[#F4F5F7] transition-colors mt-4 flex items-center justify-center">
-              Create Account
-            </Link>
+            <button type="submit" disabled={loading} className="w-full bg-white text-black font-bold text-base rounded-xl px-4 py-3.5 hover:bg-[#F4F5F7] transition-colors mt-4 flex items-center justify-center disabled:opacity-70">
+              {loading ? "Creating Account..." : "Create Account"}
+            </button>
           </form>
 
           <div className="my-8 flex items-center justify-center space-x-4">
@@ -104,11 +163,16 @@ export default function SignupPage() {
               </svg>
               Continue with Wallet
             </button>
-            <button className="w-full bg-white/5 border border-white/10 text-white font-medium text-base rounded-xl px-4 py-3 hover:bg-white/10 transition-colors flex items-center justify-center gap-3">
+            <button 
+              type="button" 
+              onClick={handleGoogleSignup} 
+              disabled={googleLoading}
+              className="w-full bg-white/5 border border-white/10 text-white font-medium text-base rounded-xl px-4 py-3 hover:bg-white/10 transition-colors flex items-center justify-center gap-3 disabled:opacity-60"
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 20.94c5.05 0 9.14-4.09 9.14-9.14 0-5.05-4.09-9.14-9.14-9.14-5.05 0-9.14 4.09-9.14 9.14 0 5.05 4.09 9.14 9.14 9.14z"/>
               </svg>
-              Continue with Google
+              {googleLoading ? "Connecting to Google..." : "Continue with Google"}
             </button>
           </div>
 
