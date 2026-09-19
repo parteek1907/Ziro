@@ -6,7 +6,9 @@ import { useAuth } from "@/lib/AuthContext"
 import {
   checkRecipient,
   compareRoutes,
-  analyzeRisk
+  analyzeRisk,
+  createPayment,
+  executePayment
 } from "@/lib/api"
 import type {
   RecipientCheckResponse,
@@ -543,6 +545,20 @@ export default function TransfersPage() {
       const usdToDeduct = (totalAmt + feesAmt) / (EXCHANGE_RATES[currency] || 1)
       
       deductBalance(usdToDeduct)
+      
+      // Hit the backend to sync it with the database and explorer
+      const paymentRes = await createPayment({
+        idempotency_key: `key-${Date.now()}-${Math.random()}`,
+        user_id: activeUserId,
+        payment_intent: note || `Transfer to ${recipient}`,
+        sender_address: fundingSource.id,
+        recipient_address: recipient,
+        amount: totalAmt,
+        currency: currency,
+        chain: "simulation"
+      });
+
+      await executePayment(paymentRes.payment_id);
       
       addTransaction({
         id: `tx-${Math.floor(Math.random() * 10000)}`,
@@ -1109,7 +1125,7 @@ export default function TransfersPage() {
               <button onClick={reset} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-sm px-6 py-3 rounded-full transition-colors">
                 Send Another
               </button>
-              <button className="flex-1 bg-slate-800 hover:bg-black text-white font-semibold text-sm px-6 py-3 rounded-full transition-colors flex items-center justify-center gap-2">
+              <button onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/explorer`, '_blank')} className="flex-1 bg-slate-800 hover:bg-black text-white font-semibold text-sm px-6 py-3 rounded-full transition-colors flex items-center justify-center gap-2">
                 View on PolygonScan
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
               </button>

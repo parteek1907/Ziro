@@ -20,7 +20,7 @@ class SimulationAdapter(ChainAdapter):
         if not address:
             return False
         addr = str(address).strip()
-        return addr.startswith("@") or len(addr) >= 10
+        return len(addr) >= 3
 
     def estimate_fee(self) -> float:
         return 0.001

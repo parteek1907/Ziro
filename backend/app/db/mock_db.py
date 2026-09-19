@@ -1,18 +1,70 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Optional, List
 from app.models.payment_execution import PaymentRecord, PaymentState
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 logger = logging.getLogger(__name__)
 
 DB_FILE = Path(__file__).parent / "payments_store.json"
 
-# File-backed mock database for Payment execution lifecycle
+# Hybrid mock database for Payment execution lifecycle (Local + Firebase)
 class MockDB:
     def __init__(self):
         self.payments: Dict[str, PaymentRecord] = {}
-        self._load_from_disk()
+        self.db = None
+        
+        try:
+            # Initialize Firebase
+            if not firebase_admin._apps:
+                creds_json = os.environ.get("FIREBASE_CREDENTIALS")
+                
+                # Check for either Vercel env variable OR local JSON file
+                if creds_json:
+                    cred_dict = json.loads(creds_json)
+                    cred = credentials.Certificate(cred_dict)
+                else:
+                    # Look for firebase_credentials.json in the backend root
+                    backend_root = Path(__file__).parent.parent.parent
+                    cred_path = backend_root / "firebase_credentials.json"
+                    cred = credentials.Certificate(str(cred_path))
+                    
+                firebase_admin.initialize_app(cred)
+                
+            self.db = firestore.client()
+            logger.info("Firebase Firestore initialized successfully!")
+            self._load_from_firebase()
+        except Exception as e:
+            logger.error(f"Failed to initialize Firebase: {e}. Falling back to local file.")
+            self._load_from_disk()
+
+    def _load_from_firebase(self):
+        try:
+            docs = self.db.collection("payments").stream()
+            for doc in docs:
+                data = doc.to_dict()
+                try:
+                    payment = PaymentRecord(**data)
+                    self.payments[payment.payment_id] = payment
+                except Exception as e:
+                    logger.error(f"Error parsing payment {doc.id}: {e}")
+            logger.info(f"Loaded {len(self.payments)} payments from Firebase.")
+        except Exception as e:
+            logger.error(f"Failed to load payments from Firebase: {e}")
+
+    def _persist_to_firebase(self, payment: PaymentRecord):
+        if self.db:
+            try:
+                # Convert the pydantic model to a dict properly parsing datetime strings
+                data = json.loads(payment.model_dump_json())
+                self.db.collection("payments").document(payment.payment_id).set(data)
+            except Exception as e:
+                logger.error(f"Failed to persist payment {payment.payment_id} to Firebase: {e}")
+        else:
+            self._persist_to_disk()
 
     def _load_from_disk(self):
         if DB_FILE.exists():
@@ -28,7 +80,7 @@ class MockDB:
 
     def _persist_to_disk(self):
         try:
-            records = [p.model_dump() for p in self.payments.values()]
+            records = [json.loads(p.model_dump_json()) for p in self.payments.values()]
             with open(DB_FILE, "w", encoding="utf-8") as f:
                 json.dump(records, f, indent=2, default=str)
         except Exception as e:
@@ -36,7 +88,7 @@ class MockDB:
 
     def save_payment(self, payment: PaymentRecord) -> PaymentRecord:
         self.payments[payment.payment_id] = payment
-        self._persist_to_disk()
+        self._persist_to_firebase(payment)
         return payment
 
     def get_payment(self, payment_id: str) -> Optional[PaymentRecord]:
