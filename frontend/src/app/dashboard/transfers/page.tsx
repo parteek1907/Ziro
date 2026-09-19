@@ -115,23 +115,226 @@ function RiskModal({ warnings, onClose, onProceed }: { warnings: string[]; onClo
   )
 }
 
-// ─── PIN Modal ───────────────────────────────────────────────
-function PinModal({ onSubmit, onCancel }: { onSubmit: (pin: string) => void; onCancel: () => void }) {
+// ─── Premium PIN Modal ───────────────────────────────────────────────
+function PremiumPinModal({ 
+  onSuccess, 
+  onCancel, 
+  amount, 
+  currency, 
+  recipient, 
+  route 
+}: { 
+  onSuccess: () => void; 
+  onCancel: () => void;
+  amount: string;
+  currency: string;
+  recipient: string;
+  route: string;
+}) {
   const [pin, setPin] = useState("")
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl">
-      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="bg-white/95 backdrop-blur-3xl rounded-[32px] border border-white/60 shadow-2xl p-8 max-w-sm w-full mx-4">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-900"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [isError, setIsError] = useState(false)
+  const [attempts, setAttempts] = useState(0)
+  const [lockoutTimer, setLockoutTimer] = useState(0)
+  const [showForgotPin, setShowForgotPin] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+
+  useEffect(() => {
+    if (lockoutTimer > 0) {
+      const t = setTimeout(() => setLockoutTimer(lockoutTimer - 1), 1000)
+      return () => clearTimeout(t)
+    }
+  }, [lockoutTimer])
+
+  const handleKeyPress = (key: string) => {
+    if (isVerifying || lockoutTimer > 0 || isSuccess) return
+    setIsError(false)
+    if (key === "back") {
+      setPin(prev => prev.slice(0, -1))
+    } else if (pin.length < 6) {
+      const newPin = pin + key
+      setPin(newPin)
+      if (newPin.length === 6) {
+        verifyPin(newPin)
+      }
+    }
+  }
+
+  const verifyPin = async (currentPin: string) => {
+    setIsVerifying(true)
+    await new Promise(r => setTimeout(r, 800))
+    
+    // MOCK: For demo, 111111 is incorrect, everything else works
+    if (currentPin === "111111") {
+      setIsVerifying(false)
+      setIsError(true)
+      setPin("")
+      const newAttempts = attempts + 1
+      setAttempts(newAttempts)
+      if (newAttempts >= 3) {
+        setLockoutTimer(30)
+        setAttempts(0)
+      }
+    } else {
+      setIsSuccess(true)
+      setTimeout(() => {
+        onSuccess()
+      }, 800)
+    }
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isVerifying || lockoutTimer > 0 || isSuccess) return
+      if (e.key >= "0" && e.key <= "9") {
+        handleKeyPress(e.key)
+      } else if (e.key === "Backspace") {
+        handleKeyPress("back")
+      } else if (e.key === "Escape") {
+        setShowCancelConfirm(true)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [pin, isVerifying, lockoutTimer, isSuccess])
+
+  if (showCancelConfirm) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 text-center">
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4 text-red-500">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
           </div>
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Enter PIN</h3>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Authorize your transaction</p>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Cancel payment?</h3>
+          <p className="text-sm text-slate-500 mb-6">Your payment has not been authorized.</p>
+          <div className="flex gap-3">
+            <button onClick={() => setShowCancelConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-sm py-3.5 rounded-xl transition-colors">Continue Payment</button>
+            <button onClick={onCancel} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold text-sm py-3.5 rounded-xl transition-colors shadow-md">Cancel Payment</button>
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (showForgotPin) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 text-center">
+          <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4 text-blue-500">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Reset Payment PIN</h3>
+          <p className="text-sm text-slate-500 mb-6">For your security, you'll need to verify your identity before creating a new Payment PIN.<br/><br/>PIN recovery will be completed through account verification.</p>
+          <button onClick={() => setShowForgotPin(false)} className="w-full bg-slate-900 hover:bg-black text-white font-bold text-sm py-3.5 rounded-xl transition-colors shadow-md">Understood</button>
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-end md:justify-center bg-slate-900/40 backdrop-blur-md">
+      <motion.div 
+        initial={{ opacity: 0, y: 100 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        exit={{ opacity: 0, y: 100 }} 
+        transition={{ type: "spring", stiffness: 300, damping: 30 }} 
+        className="bg-white md:rounded-[40px] rounded-t-[32px] md:border border-white/60 shadow-2xl p-6 md:p-8 w-full max-w-sm"
+      >
+        <div className="flex justify-center mb-6">
+          <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Ziro Secure</span>
+          </div>
         </div>
-        <input type="password" maxLength={4} autoFocus value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} className="w-full text-center tracking-[1em] font-mono text-4xl bg-slate-50/50 border border-slate-200 rounded-3xl py-6 focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all mb-8 shadow-inner" />
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-base px-5 py-4 rounded-2xl transition-colors">Cancel</button>
-          <button disabled={pin.length < 4} onClick={() => onSubmit(pin)} className="flex-1 bg-slate-900 hover:bg-black disabled:opacity-30 text-white font-bold text-base px-5 py-4 rounded-2xl transition-all shadow-md">Authorize</button>
+
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Confirm Payment</h3>
+          <p className="text-xs text-slate-500 mt-1.5 px-4">Enter your Payment PIN to authorize this transfer.</p>
+        </div>
+
+        <div className="bg-slate-50 rounded-2xl p-4 mb-8 border border-slate-100">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-semibold text-slate-400">Recipient</span>
+            <span className="text-sm font-bold text-slate-700">{recipient}</span>
+          </div>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-semibold text-slate-400">Amount</span>
+            <span className="text-sm font-bold text-slate-900">{currency} {amount}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold text-slate-400">Route</span>
+            <span className="text-xs font-bold text-slate-500">{route === "BLOCKCHAIN" ? "Blockchain L2" : "Traditional Rails"}</span>
+          </div>
+        </div>
+
+        <motion.div 
+          className="flex justify-center gap-3 mb-8 h-8"
+          animate={isError ? { x: [-10, 10, -10, 10, 0] } : {}}
+          transition={{ duration: 0.4 }}
+        >
+          {isSuccess ? (
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center text-emerald-500 gap-2">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span className="text-sm font-bold">Payment Authorized</span>
+            </motion.div>
+          ) : isVerifying ? (
+            <div className="flex items-center text-slate-500 gap-3">
+              <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-slate-800 animate-spin" />
+              <span className="text-sm font-bold">Verifying...</span>
+            </div>
+          ) : lockoutTimer > 0 ? (
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-bold text-red-500 mb-1">Too many incorrect attempts.</span>
+              <span className="text-xs font-semibold text-slate-500">Try again in {lockoutTimer}s</span>
+            </div>
+          ) : (
+            <>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="w-3.5 h-3.5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
+                  <AnimatePresence>
+                    {pin.length > i && (
+                      <motion.div 
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                        className="w-2.5 h-2.5 rounded-full bg-slate-800"
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </>
+          )}
+        </motion.div>
+
+        {isError && !lockoutTimer && (
+          <div className="text-center text-xs font-bold text-red-500 -mt-4 mb-4">
+            Incorrect PIN. Please try again.
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-6">
+          {["1","2","3","4","5","6","7","8","9","","0","back"].map((k, i) => (
+            k === "" ? <div key={i} /> :
+            <button
+              key={i}
+              onClick={() => handleKeyPress(k)}
+              disabled={isVerifying || lockoutTimer > 0 || isSuccess}
+              className={`h-14 rounded-2xl flex items-center justify-center text-2xl font-medium transition-colors ${
+                k === "back" 
+                  ? "text-slate-500 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-30" 
+                  : "text-slate-800 hover:bg-slate-50 active:bg-slate-100 bg-transparent disabled:opacity-30"
+              }`}
+            >
+              {k === "back" ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+              ) : k}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center px-2">
+          <button onClick={() => setShowCancelConfirm(true)} disabled={isVerifying || isSuccess} className="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-30">Cancel</button>
+          <button onClick={() => setShowForgotPin(true)} disabled={isVerifying || isSuccess} className="text-xs font-semibold text-[#4a72ff] hover:text-[#385ce0] transition-colors disabled:opacity-30">Forgot PIN?</button>
         </div>
       </motion.div>
     </div>
@@ -364,17 +567,7 @@ export default function TransfersPage() {
     proceedToRoutes()
   }, [currentPayment, proceedToRoutes])
 
-  const handlePinSubmit = useCallback(async (pin: string) => {
-    setShowPinModal(false)
-    setIsExecuting(true); setExecutionStatus("Signing & Broadcasting...")
-    try {
-      await new Promise(r => setTimeout(r, 1500))
-      setExecutionStatus("Awaiting Settlement...")
-      await new Promise(r => setTimeout(r, 1500))
-      setIsExecuting(false)
-      setView("done")
-    } catch { setIsExecuting(false); setToast({ msg: "Execution failed.", type: "error" }) }
-  }, [currentPayment])
+
 
   const reset = () => {
     setRecipient(""); setAmount(""); setNote(""); setCurrency("USD")
@@ -480,7 +673,7 @@ export default function TransfersPage() {
 
       <AnimatePresence>{toast && <Toast message={toast.msg} type={toast.type} onDismiss={dismissToast} />}</AnimatePresence>
       <AnimatePresence>{showRiskModal && <RiskModal warnings={riskWarnings} onClose={() => setShowRiskModal(false)} onProceed={handleRiskProceed} />}</AnimatePresence>
-      <AnimatePresence>{showPinModal && <PinModal onSubmit={handlePinSubmit} onCancel={() => setShowPinModal(false)} />}</AnimatePresence>
+
 
       {/* Executing Overlay */}
       <AnimatePresence>
@@ -850,7 +1043,7 @@ export default function TransfersPage() {
               arrivalTimeSeconds={arrivalTime}
               feesAmount={feesAmount}
               feesCurrency={currency}
-              onConfirm={handleConfirmSend}
+              onConfirm={() => setShowPinModal(true)}
               onCancel={() => setView("form")}
             />
           </motion.div>
@@ -1011,6 +1204,22 @@ export default function TransfersPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPinModal && (
+          <PremiumPinModal
+            onSuccess={() => {
+              setShowPinModal(false)
+              handleConfirmSend()
+            }}
+            onCancel={() => setShowPinModal(false)}
+            amount={amount}
+            currency={currency}
+            recipient={recipient}
+            route={selectedRoute?.route || "BLOCKCHAIN"}
+          />
         )}
       </AnimatePresence>
     </div>
