@@ -164,8 +164,30 @@ export default function TransfersPage() {
   const ziroVaultBalance = totalBalance - 12400.00;
   
   const FUNDING_SOURCES = [
-    { id: "fs-1", name: "ZIROVAULT", type: "Pocket", balance: `$${Math.max(0, ziroVaultBalance).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, last4: "8892", icon: "💎" },
-    { id: "fs-2", name: "JPM Chase", type: "Credit", balance: "$12,400.00", last4: "4421", icon: "🏛️" },
+    { 
+      id: "vault", 
+      name: "ZIROVAULT", 
+      type: "Pocket", 
+      balance: `$${Math.max(0, ziroVaultBalance).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 
+      last4: "1234", 
+      icon: "💎",
+      holder: "OLIVIA RHYE",
+      cardNumber: "1234 1234 1234 1234",
+      expiry: "06/28",
+      cssClass: "card-purple"
+    },
+    { 
+      id: "card", 
+      name: "JPM Chase", 
+      type: "Credit", 
+      balance: "$12,400.00", 
+      last4: "3090", 
+      icon: "🏛️",
+      holder: "ZAHRA MOHAMADI",
+      cardNumber: "1253 5432 3521 3090",
+      expiry: "09/30",
+      cssClass: "card-blue"
+    },
   ]
 
   const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
