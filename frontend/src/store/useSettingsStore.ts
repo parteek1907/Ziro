@@ -4,30 +4,18 @@ import { persist } from 'zustand/middleware';
 export interface ProfileSettings {
   name: string;
   email: string;
+  username: string;
   phone: string;
   location: string;
+  country: string;
   avatar: string;
   archetype: string;
 }
 
-export interface AIMentorSettings {
-  knowledgeLevel: 'Beginner' | 'Intermediate' | 'Advanced';
-  responseLength: 'Short' | 'Balanced' | 'Detailed';
-  aiPersonality: 'Friendly' | 'Professional';
-  rememberChatHistory: boolean;
-}
-
-export interface FinancialSettings {
-  preferredCurrency: 'USD' | 'INR' | 'EUR' | 'GBP';
-  riskTolerance: 'Low' | 'Medium' | 'High';
-  budgetReminders: boolean;
-  exchangeRates: Record<string, number>;
-}
-
-export interface NotificationSettings {
-  goalReminders: boolean;
-  scamAlerts: boolean;
-  weeklySummary: boolean;
+export interface AppearanceSettings {
+  theme: 'Light' | 'Dark' | 'System';
+  language: 'English' | string;
+  reduceAnimations: boolean;
 }
 
 export interface SecuritySession {
@@ -39,70 +27,91 @@ export interface SecuritySession {
   isCurrent: boolean;
 }
 
-export interface AppearanceSettings {
-  theme: 'Light' | 'Dark' | 'System';
-  reduceAnimations: boolean;
+export interface PrivacySettings {
+  profileVisibility: 'Public' | 'Private';
+  transactionPrivacy: 'Public' | 'Private';
+}
+
+export interface NotificationSettings {
+  paymentConfirmations: boolean;
+  paymentSecurityAlerts: boolean;
+  transferStatusUpdates: boolean;
+  trustScoreUpdates: boolean;
+  consultantNotifications: boolean;
+  productUpdates: boolean;
+}
+
+export interface ZiroPaymentSettings {
+  preferredRoute: 'Smart Routing' | 'Traditional Rail' | 'Decentralized Rail';
+  requireConfirmation: boolean;
+  securityScreening: boolean;
 }
 
 export interface SettingsState {
   profile: ProfileSettings;
-  aiMentor: AIMentorSettings;
-  financial: FinancialSettings;
-  notifications: NotificationSettings;
-  sessions: SecuritySession[];
   appearance: AppearanceSettings;
+  sessions: SecuritySession[];
+  privacy: PrivacySettings;
+  notifications: NotificationSettings;
+  payments: ZiroPaymentSettings;
 
   // Actions
   updateProfile: (data: Partial<ProfileSettings>) => void;
-  updateAIMentor: (data: Partial<AIMentorSettings>) => void;
-  updateFinancial: (data: Partial<FinancialSettings>) => void;
-  updateNotifications: (data: Partial<NotificationSettings>) => void;
   updateAppearance: (data: Partial<AppearanceSettings>) => void;
-  updateExchangeRates: (rates: Record<string, number>) => void;
+  updatePrivacy: (data: Partial<PrivacySettings>) => void;
+  updateNotifications: (data: Partial<NotificationSettings>) => void;
+  updatePayments: (data: Partial<ZiroPaymentSettings>) => void;
   terminateSession: (id: string) => void;
   terminateAllOtherSessions: () => void;
   resetAllSettings: () => void;
   setSessions: (sessions: SecuritySession[]) => void;
 }
 
-const DEFAULT_SESSIONS: SecuritySession[] = [];
+const DEFAULT_SESSIONS: SecuritySession[] = [
+  {
+    id: '1',
+    device: 'Chrome · Windows',
+    ip: '192.168.1.1',
+    location: 'Current session',
+    lastActive: 'Active now',
+    isCurrent: true
+  }
+];
 
 const DEFAULT_SETTINGS = {
   profile: {
     name: '',
     email: '',
+    username: '',
     phone: '',
     location: '',
+    country: '',
     avatar: '',
     archetype: 'The Guardian',
   },
-  aiMentor: {
-    knowledgeLevel: 'Intermediate' as const,
-    responseLength: 'Balanced' as const,
-    aiPersonality: 'Friendly' as const,
-    rememberChatHistory: true,
-  },
-  financial: {
-    preferredCurrency: 'USD' as const,
-    riskTolerance: 'Medium' as const,
-    budgetReminders: true,
-    exchangeRates: {
-      USD: 1,
-      INR: 83,
-      EUR: 0.92,
-      GBP: 0.79
-    },
-  },
-  notifications: {
-    goalReminders: true,
-    scamAlerts: true,
-    weeklySummary: true,
-  },
-  sessions: DEFAULT_SESSIONS,
   appearance: {
-    theme: 'Light' as const,
+    theme: 'System' as const,
+    language: 'English',
     reduceAnimations: false,
   },
+  sessions: DEFAULT_SESSIONS,
+  privacy: {
+    profileVisibility: 'Private' as const,
+    transactionPrivacy: 'Private' as const,
+  },
+  notifications: {
+    paymentConfirmations: true,
+    paymentSecurityAlerts: true,
+    transferStatusUpdates: true,
+    trustScoreUpdates: true,
+    consultantNotifications: true,
+    productUpdates: false,
+  },
+  payments: {
+    preferredRoute: 'Smart Routing' as const,
+    requireConfirmation: true,
+    securityScreening: true,
+  }
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -127,14 +136,14 @@ export const useSettingsStore = create<SettingsState>()(
           return { profile: newProfile };
         }),
 
-      updateAIMentor: (data) =>
+      updateAppearance: (data) =>
         set((state) => ({
-          aiMentor: { ...state.aiMentor, ...data },
+          appearance: { ...state.appearance, ...data },
         })),
 
-      updateFinancial: (data) =>
+      updatePrivacy: (data) =>
         set((state) => ({
-          financial: { ...state.financial, ...data },
+          privacy: { ...state.privacy, ...data },
         })),
 
       updateNotifications: (data) =>
@@ -142,14 +151,9 @@ export const useSettingsStore = create<SettingsState>()(
           notifications: { ...state.notifications, ...data },
         })),
 
-      updateAppearance: (data) =>
+      updatePayments: (data) =>
         set((state) => ({
-          appearance: { ...state.appearance, ...data },
-        })),
-
-      updateExchangeRates: (rates) =>
-        set((state) => ({
-          financial: { ...state.financial, exchangeRates: { ...state.financial.exchangeRates, ...rates } },
+          payments: { ...state.payments, ...data },
         })),
 
       terminateSession: (id) =>
@@ -167,7 +171,7 @@ export const useSettingsStore = create<SettingsState>()(
       resetAllSettings: () => set(DEFAULT_SETTINGS),
     }),
     {
-      name: 'finwise-settings-storage',
+      name: 'ziro-settings-storage',
     }
   )
 );
