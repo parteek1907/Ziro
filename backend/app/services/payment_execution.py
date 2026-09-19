@@ -4,11 +4,11 @@ from app.db.mock_db import mock_db
 
 from app.services.risk import ai_firewall, RiskAnalysisRequest, RiskLevel
 from app.services.security import address_protection_service, RecipientCheckRequest, RecipientCheckStatus
-from app.services.blockchain.service import BlockchainService
+from app.services.blockchain.service import blockchain_service
 
 class PaymentExecutionService:
     def __init__(self):
-        self.blockchain_service = BlockchainService()
+        self.blockchain_service = blockchain_service
 
     def create_payment(self, request: PaymentCreateRequest) -> PaymentRecord:
         # Check Idempotency
@@ -71,7 +71,7 @@ class PaymentExecutionService:
             
         payment.state = PaymentState.RISK_APPROVED
         payment.log_audit("User explicitly confirmed the payment.")
-        return payment
+        return mock_db.save_payment(payment)
 
     def execute_payment(self, payment_id: str) -> PaymentRecord:
         payment = mock_db.get_payment(payment_id)
@@ -134,8 +134,10 @@ class PaymentExecutionService:
             # If broadcast fails, we log it and keep the failure state
             payment.state = PaymentState.BROADCAST_FAILED
             payment.log_audit(f"Execution failed: {str(e)}")
+            mock_db.save_payment(payment)
             raise e
-            
+        
+        mock_db.save_payment(payment)
         return payment
 
 payment_execution_service = PaymentExecutionService()

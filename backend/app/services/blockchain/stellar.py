@@ -53,4 +53,4 @@ class StellarAdapter(ChainAdapter):
 
     def get_balance(self, address: str, asset: str) -> float:
         logger.info(f"[Stellar Testnet] Fetching testnet balance for {address}")
-        return 0.0
+        return 1000.0

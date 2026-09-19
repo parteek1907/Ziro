@@ -17,3 +17,6 @@ class BlockchainService:
         if not adapter:
             raise ValueError(f"Unsupported blockchain: {chain}")
         return adapter
+
+# Singleton instance for shared ledger state across all endpoints and execution engines
+blockchain_service = BlockchainService()
