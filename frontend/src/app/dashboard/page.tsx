@@ -3,8 +3,8 @@
 import { motion } from "framer-motion"
 import { useEffect, useState, useCallback } from "react"
 import { useAuth } from "@/lib/AuthContext"
-import { getBalance, evaluateTrustScore } from "@/lib/api"
-import type { BalanceResponse, TrustScoreResponse } from "@/lib/api"
+import { getBalance } from "@/lib/api"
+import type { BalanceResponse } from "@/lib/api"
 import Link from "next/link"
 import { useFinance } from "@/lib/FinanceContext"
 
@@ -76,20 +76,13 @@ function StatCard({
 // ─── Main page ───────────────────────────────────────────────
 export default function DashboardOverview() {
   const { user } = useAuth()
-  const { totalBalance, transactions } = useFinance()
-
-  const [trustScore, setTrustScore] = useState<TrustScoreResponse | null>(null)
-  const [trustError, setTrustError]         = useState(false)
-  const [loadingTrust, setLoadingTrust]     = useState(true)
+  const { totalBalance, transactions, trustScore, loadingTrust, trustError } = useFinance()
+  const [isExporting, setIsExporting] = useState(false)
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   
-  const fetchData = useCallback(async () => {
-    if (!user) {
-      setLoadingTrust(false)
-      setTrustError(true)
-      return
-    }
+  const fetchWallet = useCallback(async () => {
+    if (!user) return
 
     let currentWallet = "0xDemoWallet123"
     try {
@@ -108,24 +101,37 @@ export default function DashboardOverview() {
       console.warn("Could not fetch or create wallet", e)
     }
     setWalletAddress(currentWallet)
-
-    // Balance is now handled globally via useFinance()
-    // TrustScore
-    setLoadingTrust(true)
-    setTrustError(false)
-    try {
-      const data = await evaluateTrustScore(user.uid, currentWallet)
-      setTrustScore(data)
-    } catch {
-      setTrustError(true)
-    } finally {
-      setLoadingTrust(false)
-    }
   }, [user])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchWallet()
+  }, [fetchWallet])
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const element = document.getElementById("dashboard-content")
+      if (!element) return
+
+      // Dynamically import html2pdf
+      const html2pdf = (await import('html2pdf.js')).default
+
+      const opt = {
+        margin:       0.5,
+        filename:     'ziro-financial-report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      }
+
+      await html2pdf().set(opt).from(element).save()
+    } catch (err) {
+      console.error("Export failed", err)
+      window.print() // fallback
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // Derived display values
   const displayBalance = `$${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -148,7 +154,7 @@ export default function DashboardOverview() {
     : []
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8">
+    <div id="dashboard-content" className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8">
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
@@ -191,11 +197,18 @@ export default function DashboardOverview() {
           transition={{ delay: 0.2 }}
           className="flex items-center gap-3"
         >
-          <button className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export Report
+          <button onClick={handleExport} disabled={isExporting} className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50">
+            {isExporting ? (
+              <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            )}
+            {isExporting ? "Exporting..." : "Export Report"}
           </button>
           <Link
             href="/dashboard/transfers"
@@ -278,8 +291,8 @@ export default function DashboardOverview() {
 
         <StatCard
           label="Global Transfers"
-          value="12"
-          sub="4 countries this month"
+          value={transactions.length.toString()}
+          sub="Updated in realtime"
           badge="Active"
           badgeColor="orange"
           loading={false}

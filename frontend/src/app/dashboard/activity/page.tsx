@@ -46,12 +46,6 @@ export default function ActivityPage() {
           </motion.p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors shadow-sm flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export
-          </button>
           <Link href="/dashboard" className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors shadow-sm">
             ← Back
           </Link>
@@ -63,7 +57,7 @@ export default function ActivityPage() {
         {[
           { label: "Total In",   value: `+$${totals.in.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,  badge: "Received", color: "blue"   as const },
           { label: "Total Out",  value: `-$${totals.out.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, badge: "Sent",     color: "orange" as const },
-          { label: "Transfers",  value: `${filtered.length}`,               badge: "Filtered", color: "blue"   as const },
+          { label: "Transfers",  value: `${transactions.length}`,           badge: "Total",    color: "blue"   as const },
         ].map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.1 }} className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-6 shadow-sm flex flex-col justify-between">
             <div className="flex justify-between items-start mb-4">

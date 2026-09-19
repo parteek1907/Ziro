@@ -666,7 +666,6 @@ export default function TransfersPage() {
         .ziro-wallet:hover .card-blue { transform: translateY(-10px) rotate(-1deg); }
 
         /* Individual card hover — lifts card out prominently */
-        .ziro-card:hover { z-index: 100 !important; }
         .ziro-wallet:hover .card-purple:hover { transform: translateY(-55px) scale(1.05) rotate(0); box-shadow: 0 0 0 2px #bc9ff5, 0 15px 45px rgba(188,159,245,0.3); }
         .ziro-wallet:hover .card-blue:hover { transform: translateY(-30px) scale(1.05) rotate(0); box-shadow: 0 0 0 2px #2e9dfa, 0 15px 45px rgba(46,157,250,0.3); }
       `}} />
@@ -728,12 +727,14 @@ export default function TransfersPage() {
                       )}
                     </div>
                     
-                    <div className="flex flex-col gap-1 mt-auto">
-                      <div className="flex justify-end items-end">
-                        <div className="text-[10px] font-bold text-white/60 tracking-wider uppercase">{source.expiry}</div>
+                    <div className="flex flex-col gap-1 mt-auto pb-5">
+                      <div className="flex justify-end">
+                        <div className="text-[10px] font-bold text-white/60 tracking-wider uppercase">
+                          {source.expiry}
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center mt-0.5">
-                        <div className="font-mono text-base font-bold tracking-[1.5px] whitespace-pre">
+                      <div className="flex justify-between items-center">
+                        <div className="font-mono text-[13px] md:text-sm font-bold tracking-[1.5px] whitespace-pre text-white/90">
                           ••••  ••••  ••••  {source.cardNumber.slice(-4)}
                         </div>
                       </div>
@@ -850,12 +851,12 @@ export default function TransfersPage() {
 
               {/* Contacts & Form */}
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2 px-1">
-                  <span className="text-[11px] font-semibold text-slate-400">Quick contacts:</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-400 mr-1">Quick contacts:</span>
                   {[
-                    { handle: "@amara", label: "Amara (Kenya)", desc: "Verified Contact" },
-                    { handle: "@carlos", label: "Carlos (Mexico)", desc: "Verified Contact" },
-                    { handle: "@maria", label: "Maria Garcia", desc: "Verified Contact" },
+                    { handle: "@darsh", label: "(India)", desc: "Verified Contact" },
+                    { handle: "@parteek", label: "(USA)", desc: "Verified Contact" },
+                    { handle: "@aditya", label: "(France)", desc: "Verified Contact" },
                   ].map((c) => (
                     <button
                       key={c.handle}
@@ -864,7 +865,7 @@ export default function TransfersPage() {
                         setRecipient(c.handle)
                         setRecipientState("safe")
                       }}
-                      className={`text-xs px-2.5 py-1.5 rounded-full border transition-all font-medium flex items-center gap-1.5 ${
+                      className={`text-xs px-2 py-1 rounded-full border transition-all font-medium flex items-baseline gap-1 ${
                         recipient.toLowerCase() === c.handle.toLowerCase()
                           ? "bg-slate-800 text-white border-slate-800 shadow-sm"
                           : "bg-white/80 text-slate-600 border-slate-200 hover:bg-white hover:text-slate-900"
