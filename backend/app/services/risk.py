@@ -22,24 +22,15 @@ class AIPaymentFirewall:
             risk_score += 40
             reasons.append(f"Unusually large transaction amount: {request.amount} {request.currency}.")
             
-        # 2. AI Intent & Fraud Analysis (Real Gemini Integration)
-        from app.models.fraud import FraudAnalysisRequest
-        from app.services.fraud_detector import fraud_detector
-        
-        fraud_req = FraudAnalysisRequest(text=request.payment_intent)
-        fraud_res = fraud_detector.analyze(fraud_req)
-        
-        # Incorporate AI Fraud Score
-        # We scale the AI risk score to contribute to the firewall's overall score
-        # e.g., if AI says 100% scam, we add 70 points to the firewall.
-        ai_contribution = round(fraud_res.risk_score * 0.7)
-        risk_score += ai_contribution
-        
-        if fraud_res.risk_level == "HIGH":
-            warnings.append(f"AI Fraud Detector flagged HIGH risk: {fraud_res.explanation}")
-            warnings.extend([f"AI Flag: {flag}" for flag in fraud_res.red_flags])
-        elif fraud_res.risk_level == "MEDIUM":
-            warnings.append(f"AI Fraud Detector flagged MEDIUM risk: {fraud_res.explanation}")
+        # 2. Heuristic AI Intent Analysis (Mock)
+        # E.g. "urgent irs", "prince", "giveaway"
+        intent_lower = request.payment_intent.lower()
+        if "urgent" in intent_lower and "irs" in intent_lower:
+            risk_score += 60
+            warnings.append("AI Firewall: Urgent tax-related intent detected. High risk of scam.")
+        elif "giveaway" in intent_lower:
+            risk_score += 30
+            warnings.append("AI Firewall: Giveaway related keyword detected.")
 
         # 3. Aggregation & Decision Logic
         # Cap score at 100
