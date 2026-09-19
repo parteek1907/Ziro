@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
 export type Transaction = {
   id: string
@@ -38,6 +38,30 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined)
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [totalBalance, setTotalBalance] = useState<number>(54904.80)
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS)
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  // Load from local storage on mount
+  useEffect(() => {
+    try {
+      const storedBalance = localStorage.getItem("ziro_totalBalance")
+      if (storedBalance) setTotalBalance(parseFloat(storedBalance))
+
+      const storedTx = localStorage.getItem("ziro_transactions")
+      if (storedTx) setTransactions(JSON.parse(storedTx))
+    } catch (e) {
+      console.error("Failed to load finance state", e)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  // Sync to local storage on changes
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("ziro_totalBalance", totalBalance.toString())
+      localStorage.setItem("ziro_transactions", JSON.stringify(transactions))
+    }
+  }, [totalBalance, transactions, isLoaded])
 
   const deductBalance = (amountInUSD: number) => {
     setTotalBalance((prev) => Math.max(0, prev - amountInUSD))

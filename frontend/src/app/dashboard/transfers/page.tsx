@@ -24,7 +24,7 @@ const CONTACTS = [
   { id: 4, handle: "@nipun", name: "Nipun", img: "https://i.pravatar.cc/150?img=33" }
 ]
 
-const FUNDING_SOURCES = [
+const CARDS = [
   { 
     id: "vault", 
     name: "ZIROVAULT", 
@@ -144,7 +144,6 @@ export default function TransfersPage() {
   const activeUserId = user?.uid || "demo-user-123"
 
   const [view, setView] = useState<PageView>("wallet")
-  const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
 
   const [recipient, setRecipient] = useState("")
   const [amount, setAmount] = useState("")
@@ -160,6 +159,16 @@ export default function TransfersPage() {
   const [showRiskModal, setShowRiskModal] = useState(false)
   const [riskWarnings, setRiskWarnings] = useState<string[]>([])
   const [showPinModal, setShowPinModal] = useState(false)
+
+  // Dynamically calculate the primary pocket balance (total minus the static JPM Chase card)
+  const ziroVaultBalance = totalBalance - 12400.00;
+  
+  const FUNDING_SOURCES = [
+    { id: "fs-1", name: "ZIROVAULT", type: "Pocket", balance: `$${Math.max(0, ziroVaultBalance).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, last4: "8892", icon: "💎" },
+    { id: "fs-2", name: "JPM Chase", type: "Credit", balance: "$12,400.00", last4: "4421", icon: "🏛️" },
+  ]
+
+  const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
   const [isExecuting, setIsExecuting] = useState(false)
   const [executionStatus, setExecutionStatus] = useState("")
 
@@ -441,7 +450,7 @@ export default function TransfersPage() {
               
               <div className="ziro-pocket">
                 <div className="ziro-pocket-content">
-                  <div className="ziro-balance-real">$54,904.80</div>
+                  <div className="ziro-balance-real">${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div className="ziro-balance-label">Total Balance</div>
                 </div>
               </div>
