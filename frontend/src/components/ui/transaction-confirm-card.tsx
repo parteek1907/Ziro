@@ -95,6 +95,11 @@ export function TransactionConfirmCard({
   const grandTotal = totalAmount + feesAmount;
 
   const formatArrival = () => {
+    if (arrivalTimeSeconds) {
+      if (arrivalTimeSeconds < 60) return `~${Math.round(arrivalTimeSeconds)} secs`;
+      if (arrivalTimeSeconds < 3600) return `~${Math.round(arrivalTimeSeconds / 60)} mins`;
+      return `~${Math.round(arrivalTimeSeconds / 3600)} hours`;
+    }
     if (grandTotal < 500) return "1-3 secs";
     if (grandTotal < 2500) return "3-5 secs";
     if (grandTotal < 10000) return "1-2 mins";

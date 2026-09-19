@@ -254,6 +254,9 @@ export default function TransfersPage() {
   const feesAmount = totalAmount > 50 ? totalAmount * 0.002 : 0
   const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
 
+  const currentBalance = fundingSource ? parseFloat(fundingSource.balance.replace(/[^0-9.]/g, '')) : 0
+  const isInsufficientFunds = (totalAmount + feesAmount) > currentBalance
+
   return (
     <div className={`w-full flex-1 flex flex-col items-center justify-center px-4 md:px-8 mx-auto relative select-none ${view === "confirm" ? "py-2 overflow-hidden" : "py-8"}`}>
       {/* Wallet CSS — properly scoped, cards stay BELOW title */}
@@ -466,6 +469,12 @@ export default function TransfersPage() {
                     className="w-full bg-transparent text-center text-6xl font-black text-slate-900 placeholder:text-slate-200 focus:outline-none transition-all"
                   />
                 </div>
+                
+                {isInsufficientFunds && (
+                  <div className="text-red-500 text-xs font-bold mt-2 text-center absolute w-full left-0 bottom-[-5px]">
+                    Insufficient funds (Max: {fundingSource?.balance})
+                  </div>
+                )}
 
                 {/* Currency Pill — positioned below amount, not overlapping */}
                 <div className="flex justify-center mt-4 relative z-30">
@@ -555,7 +564,7 @@ export default function TransfersPage() {
               <div className="pt-2">
                 <button
                   onClick={handleContinue}
-                  disabled={!amount || !recipient || recipientState === "blocked"}
+                  disabled={!amount || !recipient || recipientState === "blocked" || isInsufficientFunds}
                   className="w-full bg-slate-900 hover:bg-black disabled:opacity-50 disabled:hover:bg-slate-900 text-white font-bold text-lg px-5 py-5 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1 relative overflow-hidden group"
                 >
                   <span className="relative z-10 tracking-wide">Continue</span>
