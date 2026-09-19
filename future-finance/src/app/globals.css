@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  
+  --sapphire-500: #3b82f6;
+  --sapphire-600: #2563eb;
+  
+  --cream: #fdfbf7;
+  --sage-light: #e6efe9;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  --color-emerald-500: var(--emerald-500);
+  --color-emerald-600: var(--emerald-600);
+  --color-sapphire-500: var(--sapphire-500);
+  --color-sapphire-600: var(--sapphire-600);
+  --color-cream: var(--cream);
+  --color-sage-light: var(--sage-light);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  
+  /* Crezco-style soft grid background */
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Base resets */
+* {
+  border-color: #e2e8f0;
+}
