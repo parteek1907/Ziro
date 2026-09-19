@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText as GSAPSplitText } from 'gsap/SplitText';
@@ -19,7 +19,7 @@ interface SplitTextProps {
   threshold?: number;
   rootMargin?: string;
   textAlign?: 'left' | 'center' | 'right' | 'justify' | 'start' | 'end';
-  tag?: keyof JSX.IntrinsicElements;
+  tag?: React.ElementType;
   onLetterAnimationComplete?: () => void;
 }
 
