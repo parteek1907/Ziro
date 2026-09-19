@@ -28,7 +28,7 @@ export default function ActivityPage() {
   })
 
   const totals = {
-    in:  transactions.filter((t) => t.amount.startsWith("+")).reduce((s, t) => s + parseFloat(t.amount.replace(/[^0-9.]/g, "")), 0),
+    in:  52700.40, // Hardcoded as requested
     out: transactions.filter((t) => t.amount.startsWith("-")).reduce((s, t) => s + parseFloat(t.amount.replace(/[^0-9.]/g, "")), 0),
   }
 
@@ -61,8 +61,8 @@ export default function ActivityPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { label: "Total In",   value: `+$${totals.in.toLocaleString()}`,  badge: "Received", color: "blue"   as const },
-          { label: "Total Out",  value: `-$${totals.out.toLocaleString()}`, badge: "Sent",     color: "orange" as const },
+          { label: "Total In",   value: `+$${totals.in.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,  badge: "Received", color: "blue"   as const },
+          { label: "Total Out",  value: `-$${totals.out.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, badge: "Sent",     color: "orange" as const },
           { label: "Transfers",  value: `${filtered.length}`,               badge: "Filtered", color: "blue"   as const },
         ].map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.1 }} className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-6 shadow-sm flex flex-col justify-between">

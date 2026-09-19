@@ -14,16 +14,9 @@ export type Transaction = {
 }
 
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: "tx-1",  type: "Settlement", to: "Maria Garcia",   route: "USD → MXN", amount: "-$450.00",    status: "Completed", time: "12 mins ago",   ref: "ZR-7842" },
-  { id: "tx-2",  type: "Transfer",   to: "James Wilson",    route: "USD → INR", amount: "+$2,000.00",  status: "Completed", time: "34 mins ago",   ref: "ZR-7841" },
-  { id: "tx-3",  type: "Payment",    to: "L2 Wallet",       route: "USD → KES", amount: "-$124.50",    status: "Pending",   time: "1 hour ago",    ref: "ZR-7840" },
-  { id: "tx-4",  type: "Transfer",   to: "Amara",           route: "USD → KES", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
-  { id: "tx-5",  type: "Settlement", to: "Cloud Infra LLC", route: "USD → USD", amount: "-$320.00",    status: "Completed", time: "5 hours ago",   ref: "ZR-7838" },
-  { id: "tx-6",  type: "Transfer",   to: "Riya Kapoor",     route: "USD → INR", amount: "+$5,000.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7837" },
-  { id: "tx-7",  type: "Payment",    to: "Stripe Inc",      route: "USD → USD", amount: "-$99.00",     status: "Completed", time: "1 day ago",     ref: "ZR-7836" },
-  { id: "tx-8",  type: "Settlement", to: "0x7a...9b",       route: "ETH → USD", amount: "-$12,000.00", status: "Completed", time: "2 days ago",    ref: "ZR-7835" },
-  { id: "tx-9",  type: "Transfer",   to: "Carlos M.",       route: "USD → MXN", amount: "-$750.00",    status: "Failed",    time: "3 days ago",    ref: "ZR-7834" },
-  { id: "tx-10", type: "Transfer",   to: "L2 Wallet",       route: "USD → KES", amount: "+$10,000.00", status: "Completed", time: "1 week ago",    ref: "ZR-7833" },
+  { id: "tx-1",  type: "Transfer",   to: "Amara",           route: "USD → KES", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
+  { id: "tx-2",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$1,200.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7838" },
+  { id: "tx-3",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$4,500.00",  status: "Completed", time: "3 days ago",    ref: "ZR-7837" },
 ]
 
 interface FinanceContextType {
