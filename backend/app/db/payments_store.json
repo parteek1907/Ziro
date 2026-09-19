@@ -110,5 +110,101 @@
       "[2026-09-19T21:42:41.908416] Transaction broadcasted with hash b276e0a72ee1ca165ac5f49c11d6158968febdf382850f3e92437de52d4dda39.",
       "[2026-09-19T21:42:41.908416] Blockchain settlement verified successfully."
     ]
+  },
+  {
+    "payment_id": "87241fde-b583-43fa-8811-392b64ceac2f",
+    "idempotency_key": "key-1789855794740-0.6921646146003464",
+    "user_id": "demo-user-123",
+    "payment_intent": "Transfer to @darsh",
+    "sender_address": "card",
+    "recipient_address": "@darsh",
+    "amount": 100.0,
+    "currency": "USD",
+    "chain": "simulation",
+    "state": "BROADCAST_FAILED",
+    "blockchain_tx_id": null,
+    "blockchain_tx_hash": null,
+    "network_fee": null,
+    "created_at": "2026-09-19T22:09:54.761609Z",
+    "updated_at": "2026-09-19T22:09:54.829563Z",
+    "settled_at": null,
+    "audit_trail": [
+      "[2026-09-19T22:09:54.761609] Payment created in system.",
+      "[2026-09-19T22:09:54.761609] Payment requires explicit confirmation. Risk: RiskLevel.LOW. Address Warn: RecipientCheckStatus.WARNING",
+      "[2026-09-19T22:09:54.829563] Preparing blockchain transaction.",
+      "[2026-09-19T22:09:54.829563] Execution failed: Invalid sender or recipient address"
+    ]
+  },
+  {
+    "payment_id": "d2c3c9e3-6016-48eb-a3f6-c855fa08a10d",
+    "idempotency_key": "key-1789855824687-0.059429270503348675",
+    "user_id": "demo-user-123",
+    "payment_intent": "Transfer to @parteek",
+    "sender_address": "card",
+    "recipient_address": "@parteek",
+    "amount": 1000.0,
+    "currency": "USD",
+    "chain": "simulation",
+    "state": "BROADCAST_FAILED",
+    "blockchain_tx_id": null,
+    "blockchain_tx_hash": null,
+    "network_fee": null,
+    "created_at": "2026-09-19T22:10:24.697056Z",
+    "updated_at": "2026-09-19T22:10:24.722654Z",
+    "settled_at": null,
+    "audit_trail": [
+      "[2026-09-19T22:10:24.697056] Payment created in system.",
+      "[2026-09-19T22:10:24.697056] Payment requires explicit confirmation. Risk: RiskLevel.LOW. Address Warn: RecipientCheckStatus.WARNING",
+      "[2026-09-19T22:10:24.722654] Preparing blockchain transaction.",
+      "[2026-09-19T22:10:24.722654] Execution failed: Invalid sender or recipient address"
+    ]
+  },
+  {
+    "payment_id": "8a0acaa0-6d44-4f09-9063-e25ca4c3c2d7",
+    "idempotency_key": "key-1789856280484-0.5088562321069834",
+    "user_id": "demo-user-123",
+    "payment_intent": "Transfer to @parteek",
+    "sender_address": "card",
+    "recipient_address": "@parteek",
+    "amount": 100.0,
+    "currency": "USD",
+    "chain": "simulation",
+    "state": "BROADCAST_FAILED",
+    "blockchain_tx_id": null,
+    "blockchain_tx_hash": null,
+    "network_fee": null,
+    "created_at": "2026-09-19T22:18:00.494292Z",
+    "updated_at": "2026-09-19T22:18:00.522199Z",
+    "settled_at": null,
+    "audit_trail": [
+      "[2026-09-19T22:18:00.494292] Payment created in system.",
+      "[2026-09-19T22:18:00.494292] Payment requires explicit confirmation. Risk: RiskLevel.LOW. Address Warn: RecipientCheckStatus.WARNING",
+      "[2026-09-19T22:18:00.522199] Preparing blockchain transaction.",
+      "[2026-09-19T22:18:00.522199] Execution failed: Invalid sender or recipient address"
+    ]
+  },
+  {
+    "payment_id": "28cf0ce0-b82d-4638-94e7-6a95111cc83c",
+    "idempotency_key": "key-1789857624144-0.18382136058671683",
+    "user_id": "demo-user-123",
+    "payment_intent": "Transfer to @parteek",
+    "sender_address": "card",
+    "recipient_address": "@parteek",
+    "amount": 100.0,
+    "currency": "USD",
+    "chain": "simulation",
+    "state": "BROADCAST_FAILED",
+    "blockchain_tx_id": null,
+    "blockchain_tx_hash": null,
+    "network_fee": null,
+    "created_at": "2026-09-19T22:40:24.156945Z",
+    "updated_at": "2026-09-19T22:40:24.180153Z",
+    "settled_at": null,
+    "audit_trail": [
+      "[2026-09-19T22:40:24.156945] Payment created in system.",
+      "[2026-09-19T22:40:24.156945] Payment requires explicit confirmation. Risk: RiskLevel.LOW. Address Warn: RecipientCheckStatus.WARNING",
+      "[2026-09-19T22:40:24.180153] Preparing blockchain transaction.",
+      "[2026-09-19T22:40:24.180153] Execution failed: Invalid sender or recipient address"
+    ]
   }
 ]
