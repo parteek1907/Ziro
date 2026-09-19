@@ -1,0 +1,12 @@
+{
+  "name": "future-finance-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix future-finance",
+    "build": "npm run build --prefix future-finance",
+    "start": "npm run start --prefix future-finance",
+    "frontend": "npm run dev --prefix future-finance",
+    "backend": "uvicorn app.main:app --app-dir backend --reload --port 8000"
+  }
+}
