@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     NETWORK_FEE_USD: Decimal = Decimal("0.001") # Hardcoded Paymaster gas
     SETTLEMENT_SECONDS_ESTIMATE: int = 5
 
+    # Web3
+    POLYGON_RPC_URL: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
     )

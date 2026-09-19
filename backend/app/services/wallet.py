@@ -10,9 +10,22 @@ class WalletService:
         self._wallets: Dict[str, Wallet] = {}
 
     def create_wallet(self, user_id: str, data: WalletCreate) -> Wallet:
-        # Validate address using blockchain adapter
         adapter = blockchain_service.get_adapter(data.chain)
-        if not adapter.validate_address(data.public_address):
+        
+        public_address = data.public_address
+        private_key = None
+        
+        if not public_address:
+            # Auto-generate a real Web3 wallet if not provided
+            from eth_account import Account
+            import secrets
+            # Create random entropy
+            priv = secrets.token_hex(32)
+            acct = Account.from_key("0x" + priv)
+            public_address = acct.address
+            private_key = "0x" + priv
+            
+        if not adapter.validate_address(public_address):
             raise ValueError(f"Invalid {data.chain} address format")
 
         wallet_id = str(uuid.uuid4())
@@ -20,7 +33,8 @@ class WalletService:
             id=wallet_id,
             user_id=user_id,
             chain=data.chain.lower(),
-            public_address=data.public_address,
+            public_address=public_address,
+            private_key=private_key,
             wallet_type=data.wallet_type,
             is_verified=True # Auto-verify in simulation
         )

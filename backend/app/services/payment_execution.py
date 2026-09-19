@@ -106,9 +106,17 @@ class PaymentExecutionService:
             
             # Step 2: Sign
             payment.state = PaymentState.SIGNED
-            # Never use real private keys here, passing dummy since we default to simulation
-            dummy_private_key = "0xSIMULATED_PRIVATE_KEY"
-            tx = adapter.sign_transaction(tx, dummy_private_key)
+            
+            # Fetch real private key for live transactions
+            from app.services.wallet import wallet_service
+            real_private_key = "0xSIMULATED_PRIVATE_KEY"
+            # Find wallet by address
+            for w in wallet_service._wallets.values():
+                if w.public_address == payment.sender_address and w.private_key:
+                    real_private_key = w.private_key
+                    break
+                    
+            tx = adapter.sign_transaction(tx, real_private_key)
             payment.log_audit("Transaction signed.")
             
             # Step 3: Broadcast

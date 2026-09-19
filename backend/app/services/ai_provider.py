@@ -1,15 +1,14 @@
 import os
 import google.generativeai as genai
 import logging
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
 class AISettings(BaseSettings):
-    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    gemini_api_key: str = ""
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = AISettings()
 
