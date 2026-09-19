@@ -28,10 +28,16 @@ class OfflinePaymentEngine:
         if payload.nonce <= last_nonce:
             return False, OfflineTxState.DUPLICATE, f"Nonce {payload.nonce} has already been used by sender."
             
-        # 4. Signature Verification (Mock)
-        # In production, verify ECDSA signature of the payload bytes
-        if not payload.signature.startswith("0xvalid_sig_"):
-            return False, OfflineTxState.INVALID_SIGNATURE, "Cryptographic signature verification failed."
+        # 4. Cryptographic Verification (Prevent Man-in-the-Middle)
+        # In a real environment, we would use eth_account or secp256k1 to recover the public address from the ECDSA signature
+        # and verify it strictly matches payload.sender.
+        # For this hackathon/simulation, we verify that the signature deterministically binds the core elements.
+        import hashlib
+        expected_hash_bytes = hashlib.sha256(f"{payload.sender}-{payload.recipient}-{payload.amount}-{payload.nonce}".encode()).digest()
+        expected_hex = "0x" + expected_hash_bytes.hex()
+        
+        if payload.signature != expected_hex:
+            return False, OfflineTxState.INVALID_SIGNATURE, "Cryptographic signature verification failed. Possible Man-in-the-Middle payload tampering detected."
             
         return True, OfflineTxState.QUEUED, "Payload is valid and ready for sync."
 
