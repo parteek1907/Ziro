@@ -124,11 +124,12 @@ export const useSettingsStore = create<SettingsState>()(
           const newProfile = { ...state.profile, ...data };
           // Sync with useAppStore
           try {
-            const { useAppStore } = require('./useAppStore');
-            useAppStore.getState().updateUser({
-              name: newProfile.name,
-              email: newProfile.email,
-              avatar: newProfile.avatar,
+            import('./useAppStore').then(({ useAppStore }) => {
+              useAppStore.getState().updateUser({
+                name: newProfile.name,
+                email: newProfile.email,
+                avatar: newProfile.avatar,
+              });
             });
           } catch (e) {
             console.error('Error syncing store user', e);

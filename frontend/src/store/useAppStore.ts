@@ -44,7 +44,7 @@ export interface AppState {
   activeChatId: string | null;
   
   // Actions
-  addGoal: (goal: any) => void;
+  addGoal: (goal: { name: string; target: number; deadline: string; category: string; currency?: string }) => void;
   updateGoal: (id: string, amount: number) => void;
   addMessage: (chatId: string, message: Omit<MentorMessage, 'id' | 'timestamp'>) => void;
   removeMessage: (chatId: string, messageId: string) => void;
@@ -64,7 +64,7 @@ const INITIAL_USER: User = {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: INITIAL_USER,
       goals: [],
       chats: [],

@@ -83,22 +83,26 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [user, transactions.length])
 
   useEffect(() => {
-    fetchTrustScore()
+    Promise.resolve().then(() => {
+      fetchTrustScore()
+    })
   }, [fetchTrustScore])
 
   // Load from local storage on mount
   useEffect(() => {
-    try {
-      const storedBalance = localStorage.getItem("ziro_totalBalance_v2")
-      if (storedBalance) setTotalBalance(parseFloat(storedBalance))
+    Promise.resolve().then(() => {
+      try {
+        const storedBalance = localStorage.getItem("ziro_totalBalance_v2")
+        if (storedBalance) setTotalBalance(parseFloat(storedBalance))
 
-      const storedTx = localStorage.getItem("ziro_transactions_v2")
-      if (storedTx) setTransactions(JSON.parse(storedTx))
-    } catch (e) {
-      console.error("Failed to load finance state", e)
-    } finally {
-      setIsLoaded(true)
-    }
+        const storedTx = localStorage.getItem("ziro_transactions_v2")
+        if (storedTx) setTransactions(JSON.parse(storedTx))
+      } catch (e) {
+        console.error("Failed to load finance state", e)
+      } finally {
+        setIsLoaded(true)
+      }
+    });
   }, [])
 
   // Sync to local storage on changes
