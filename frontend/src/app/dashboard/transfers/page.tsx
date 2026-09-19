@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/lib/AuthContext"
-import { checkRecipient, compareRoutes, analyzeRisk } from "@/lib/api"
+import { checkRecipient, compareRoutes, analyzeRisk, createPayment, executePayment as apiExecutePayment } from "@/lib/api"
 import type { RouteOption, RiskAnalysisResponse } from "@/lib/api"
 import Link from "next/link"
 import { useFinance } from "@/lib/FinanceContext"
@@ -427,6 +427,23 @@ export default function TransfersPage() {
       const usdToDeduct = grandTotal / (EXCHANGE_RATES[currency] || 1)
       deductBalance(usdToDeduct)
 
+      // BACKEND INTEGRATION
+      try {
+        const payRes = await createPayment({
+          idempotency_key: idempotencyKey.current,
+          user_id: activeUserId,
+          payment_intent: note || "transfer",
+          sender_address: "0xMockSenderAddress",
+          recipient_address: selectedRecipient?.handle || "0xMockRecipientAddress",
+          amount: totalAmount,
+          currency: currency,
+          chain: "polygon"
+        });
+        await apiExecutePayment(payRes.payment_id);
+      } catch (err) {
+        console.warn("Backend payment failed, continuing with mock UI", err);
+      }
+
       const ref = `ZR-${Math.floor(1000 + Math.random() * 9000)}`
       const id = `tx-${Math.floor(Math.random() * 10000)}`
       setTxRef(ref); setTxId(id)
@@ -447,7 +464,7 @@ export default function TransfersPage() {
     } finally {
       isSubmitting.current = false
     }
-  }, [grandTotal, currency, sym, selectedRecipient, deductBalance, addTransaction])
+  }, [grandTotal, currency, sym, selectedRecipient, deductBalance, addTransaction, activeUserId, note, totalAmount])
 
   const reset = () => {
     setSelectedRecipient(null); setAmount(""); setNote(""); setCurrency("USD")
