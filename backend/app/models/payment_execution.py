@@ -56,11 +56,11 @@ class PaymentRecord(BaseModel):
         self.updated_at = datetime.utcnow().isoformat() + "Z"
 
 class PaymentCreateRequest(BaseModel):
-    idempotency_key: str
-    user_id: str
-    payment_intent: str
-    sender_address: str
+    idempotency_key: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str = "test_user_01"
+    payment_intent: str = "transfer"
+    sender_address: str = "0xYourWalletAddress"
     recipient_address: str
     amount: float
-    currency: str
-    chain: str
+    currency: str = "USD"
+    chain: str = "simulation"
