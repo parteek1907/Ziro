@@ -213,12 +213,49 @@ export default function TransfersPage() {
   }, [amount, currency])
 
   const confirmSend = useCallback(async () => {
+    if (!user || !selectedRoute) return
     setSending(true)
-    // Simulate the actual payment submission
-    await new Promise((r) => setTimeout(r, 1500))
-    setSending(false)
-    setStep("done")
-  }, [])
+    
+    try {
+      // 1. Fetch user's wallets to get a sender_address
+      const { getUserWallets, createPayment, executePayment } = await import("@/lib/api")
+      const wallets = await getUserWallets()
+      if (!wallets || wallets.length === 0) {
+        throw new Error("No wallet found for your account. Please set up a wallet first.")
+      }
+      
+      const senderAddress = wallets[0].public_address
+      const chain = selectedRoute.route === "BLOCKCHAIN" ? "polygon" : "simulation"
+      
+      // 2. Create the Payment Intent
+      const paymentReq = {
+        idempotency_key: crypto.randomUUID(),
+        user_id: user.uid,
+        payment_intent: note || "transfer",
+        sender_address: senderAddress,
+        recipient_address: recipient.trim(),
+        amount: parseFloat(amount),
+        currency,
+        chain
+      }
+      
+      const payment = await createPayment(paymentReq)
+      
+      // 3. Execute the Payment
+      const executed = await executePayment(payment.payment_id)
+      
+      if (executed.state === "SETTLED" || executed.state === "PENDING" || executed.state === "BROADCAST") {
+        setStep("done")
+      } else {
+        throw new Error(`Payment failed with status: ${executed.state}`)
+      }
+      
+    } catch (err: any) {
+      setToast({ msg: err.message || "Failed to execute payment.", type: "error" })
+    } finally {
+      setSending(false)
+    }
+  }, [user, selectedRoute, note, recipient, amount, currency])
 
   const reset = () => {
     setRecipient(""); setAmount(""); setNote(""); setCurrency("USD")

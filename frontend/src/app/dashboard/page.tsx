@@ -91,17 +91,28 @@ export default function DashboardOverview() {
   const [loadingBalance, setLoadingBalance] = useState(true)
   const [loadingTrust, setLoadingTrust]     = useState(true)
 
-  // Demo wallet — in production this comes from the connected wallet
-  const DEMO_WALLET = "0xDemoWallet123"
-
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  
   const fetchData = useCallback(async () => {
     if (!user) return
+
+    let currentWallet = "0xDemoWallet123"
+    try {
+      const { getUserWallets } = await import("@/lib/api")
+      const wallets = await getUserWallets()
+      if (wallets && wallets.length > 0) {
+        currentWallet = wallets[0].public_address
+        setWalletAddress(currentWallet)
+      }
+    } catch (e) {
+      console.warn("Could not fetch wallet", e)
+    }
 
     // Balance
     setLoadingBalance(true)
     setBalanceError(false)
     try {
-      const data = await getBalance(DEMO_WALLET)
+      const data = await getBalance(currentWallet)
       setBalance(data)
     } catch {
       setBalanceError(true)
@@ -113,7 +124,7 @@ export default function DashboardOverview() {
     setLoadingTrust(true)
     setTrustError(false)
     try {
-      const data = await evaluateTrustScore(user.uid, DEMO_WALLET)
+      const data = await evaluateTrustScore(user.uid, currentWallet)
       setTrustScore(data)
     } catch {
       setTrustError(true)
@@ -171,6 +182,18 @@ export default function DashboardOverview() {
           >
             Everything moving through Ziro, in one place.
           </motion.p>
+          
+          {walletAddress && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="mt-3 flex items-center gap-2 bg-white/50 border rounded-xl px-3 py-1.5 w-fit shadow-sm"
+            >
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-mono text-slate-600 select-all">{walletAddress}</span>
+            </motion.div>
+          )}
         </div>
 
         <motion.div

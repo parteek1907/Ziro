@@ -109,6 +109,23 @@ export type WalletConnectResponse = {
   connected_at: string
 }
 
+export type PaymentCreateRequest = {
+  idempotency_key: string
+  user_id: string
+  payment_intent: string
+  sender_address: string
+  recipient_address: string
+  amount: number
+  currency: string
+  chain: string
+}
+
+export type PaymentRecord = {
+  payment_id: string
+  state: string
+  blockchain_tx_hash?: string
+}
+
 // ─── API Methods ─────────────────────────────────────────────
 
 /** Fetch wallet balance for a given address */
@@ -120,6 +137,26 @@ export async function getBalance(
   return request<BalanceResponse>(
     `/api/v1/blockchain/balance/${walletAddress}?chain=${chain}&asset=${asset}`
   )
+}
+
+/** Fetch user's wallets */
+export async function getUserWallets(): Promise<any[]> {
+  return request<any[]>("/api/v1/wallets")
+}
+
+/** Create a payment */
+export async function createPayment(payload: PaymentCreateRequest): Promise<PaymentRecord> {
+  return request<PaymentRecord>("/api/v1/payments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+/** Execute a payment */
+export async function executePayment(paymentId: string): Promise<PaymentRecord> {
+  return request<PaymentRecord>(`/api/v1/payments/${paymentId}/execute`, {
+    method: "POST",
+  })
 }
 
 /** Evaluate TrustScore for a user */
