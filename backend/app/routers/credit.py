@@ -1,121 +1,160 @@
 """Alternative Credit Scoring (TrustScore) and zk-Credit Credential Engine."""
-from datetime import datetime
-import hashlib
-import secrets
+import math
 from fastapi import APIRouter
 from app.schemas import (
     CreditEvaluationRequest,
     CreditEvaluationResponse,
     ZKProofRequest,
     ZKProofResponse,
+    ZKProofPublicInputs
+)
+from app.core.trust_model import (
+    MODEL_VERSION, SCALE,
+    V1_WEIGHT, V1_ALPHA, MIN_REMITTANCE_INTERVALS, X_TARGET_USD,
+    V2_WEIGHT, STREAK_TARGET,
+    V3_WEIGHT, STAKE_TARGET_USD, MAX_STAKE_DURATION_DAYS,
+    V4_WEIGHT, THIN_FILE_CAP, MAX_APR_POLICY
 )
 
 router = APIRouter(prefix="/api/credit", tags=["Credit & TrustScore"])
 
+def calculate_cv(intervals: list[float]) -> float:
+    if len(intervals) < MIN_REMITTANCE_INTERVALS:
+        return 0.0
+    mean = sum(intervals) / len(intervals)
+    if mean == 0:
+        return 0.0
+    variance = sum((x - mean) ** 2 for x in intervals) / len(intervals)
+    stddev = math.sqrt(variance)
+    return stddev / mean
+
+def clamp_scale(val: float) -> int:
+    return int(max(0.0, min(1.0, val)) * SCALE)
 
 @router.post("/evaluate", response_model=CreditEvaluationResponse)
 async def evaluate_trust_score(req: CreditEvaluationRequest):
     """
-    Evaluates alternative non-FICO credit telemetry (remittance velocity, peer endorsements,
-    psychometrics, and mobile utility consistency) mapped to a 300-850 TrustScore.
+    Evaluates objective financial telemetry mapped to a 300-850 TrustScore
+    using strict v0 fixed-point arithmetic.
     """
-    # Raw score summation: max possible is 250 + 200 + 200 + 200 = 850
-    raw_score = (
-        req.remittance_history_score
-        + req.peer_trust_score
-        + req.psychometric_quiz_score
-        + req.utility_velocity_score
-    )
-    
-    # Scale raw score into standard credit score range (300 to 850)
-    # Minimum base is 300, incremental pool is 550
-    score_ratio = min(max(raw_score / 850.0, 0.0), 1.0)
-    calculated_score = int(300 + (score_ratio * 550))
-
-    # Tier mapping & loan parameters
-    if calculated_score >= 740:
-        tier = "Tier 1: Prime Micro-Credit"
-        max_loan = 350.0
-        apr = 4.5
-        risk = "Very Low"
-        reasoning = (
-            "Exceptional remittance velocity and verified community peer endorsements. "
-            "Borrower demonstrates consistent mobile utility payments and strong psychometric reliability."
-        )
-    elif calculated_score >= 620:
-        tier = "Tier 2: Growth Micro-Credit"
-        max_loan = 200.0
-        apr = 7.5
-        risk = "Moderate Low"
-        reasoning = (
-            "Steady transaction cadence with positive peer endorsements. "
-            "Eligible for starter capital with progressive credit limit unlocking."
-        )
+    # V1 Calculation [MEASURED]
+    v1_has_data = len(req.remittance_intervals_days) >= MIN_REMITTANCE_INTERVALS
+    if v1_has_data:
+        cv = calculate_cv(req.remittance_intervals_days)
+        Cr = clamp_scale(1.0 - cv)
+        Vs = clamp_scale(req.mean_monthly_inflow_usd / (X_TARGET_USD / SCALE))
+        V1 = (V1_ALPHA * Cr + (SCALE - V1_ALPHA) * Vs) // SCALE
     else:
-        tier = "Tier 3: Micro-Starter Accelerator"
-        max_loan = 75.0
-        apr = 11.0
-        risk = "Guarded / Stepping Stone"
-        reasoning = (
-            "Early financial telemetry recorded. Borrower can bootstrap TrustScore through "
-            "on-time utility top-ups and initial micro-installments."
+        V1 = 0
+
+    # V2 Calculation [MEASURED]
+    v2_has_data = len(req.utility_payments) > 0
+    if v2_has_data:
+        on_time_count = sum(1 for p in req.utility_payments if p.is_on_time)
+        on_time_ratio = clamp_scale(on_time_count / len(req.utility_payments))
+        streak_val = clamp_scale(req.utility_streak / STREAK_TARGET)
+        V2 = (int(0.7 * SCALE) * on_time_ratio + int(0.3 * SCALE) * streak_val) // SCALE
+    else:
+        V2 = 0
+
+    if not v1_has_data and not v2_has_data:
+        return CreditEvaluationResponse(
+            applicant_id=req.applicant_id,
+            model_version=MODEL_VERSION,
+            status="INSUFFICIENT_DATA",
+            reason_codes=["MISSING_CORE_TELEMETRY"],
+            borrower_protection_max_apr=MAX_APR_POLICY
         )
 
-    # Calculate savings vs informal loan shark / predatory payday lenders (avg 120% APR)
-    predatory_rate = 120.0
-    interest_savings = round(max_loan * ((predatory_rate - apr) / 100.0) / 12.0, 2)
+    # V3 Calculation [MEASURED]
+    capped_stake_sum = 0.0
+    duration_sum = 0
+    repayment_rate_sum = 0.0
+    for p in req.peer_stakes:
+        capped_stake_sum += p.stake_amount_usd
+        duration_sum += min(p.duration_days, MAX_STAKE_DURATION_DAYS)
+        repayment_rate_sum += p.peer_repayment_rate
+        
+    num_peers = len(req.peer_stakes)
+    if num_peers > 0:
+        stake_val = clamp_scale(capped_stake_sum / (STAKE_TARGET_USD / SCALE))
+        duration_val = clamp_scale((duration_sum / num_peers) / MAX_STAKE_DURATION_DAYS)
+        repayment_val = clamp_scale(repayment_rate_sum / num_peers)
+        V3 = (int(0.5 * SCALE) * stake_val + int(0.3 * SCALE) * duration_val + int(0.2 * SCALE) * repayment_val) // SCALE
+    else:
+        V3 = 0
+        
+    # V4 Calculation [MEASURED]
+    has_v4 = req.v4_assessment_score is not None
+    if has_v4:
+        V4 = clamp_scale(req.v4_assessment_score)
+    else:
+        V4 = 0
+
+    # Weights [ASSUMPTION]
+    w1, w2, w3, w4 = V1_WEIGHT, V2_WEIGHT, V3_WEIGHT, V4_WEIGHT
+    
+    # Renormalize if v4 is missing
+    if not has_v4:
+        total_w = w1 + w2 + w3
+        if total_w > 0:
+            w1 = (w1 * SCALE) // total_w
+            w2 = (w2 * SCALE) // total_w
+            w3 = (w3 * SCALE) // total_w
+        w4 = 0
+
+    # Calculate score
+    weighted_sum = (w1 * V1 + w2 * V2 + w3 * V3 + w4 * V4) // SCALE
+    score = 300 + (550 * weighted_sum) // SCALE
+    
+    # Thin file cap [TARGET]
+    is_thin = not v1_has_data or not v2_has_data or num_peers == 0
+    if is_thin and score > THIN_FILE_CAP:
+        score = THIN_FILE_CAP
+        
+    reason_codes = []
+    if is_thin:
+        reason_codes.append("CAPPED_THIN_FILE")
+    if V1 > int(0.8 * SCALE):
+        reason_codes.append("STRONG_REMITTANCE_HISTORY")
+    if V2 < int(0.5 * SCALE) and v2_has_data:
+        reason_codes.append("POOR_UTILITY_CONSISTENCY")
 
     return CreditEvaluationResponse(
-        applicant_id=req.applicant_id or "user_anon_01",
-        trust_score=calculated_score,
-        credit_tier=tier,
-        eligible_microloan_usd=max_loan,
-        offered_apr_percent=apr,
-        traditional_predatory_apr_percent=predatory_rate,
-        estimated_monthly_savings_usd=interest_savings,
-        risk_category=risk,
+        applicant_id=req.applicant_id,
+        model_version=MODEL_VERSION,
+        trust_score=score,
+        status="SUCCESS",
+        reason_codes=reason_codes,
+        borrower_protection_max_apr=MAX_APR_POLICY,
         score_breakdown={
-            "remittance_velocity": req.remittance_history_score,
-            "peer_trust_network": req.peer_trust_score,
-            "psychometric_stability": req.psychometric_quiz_score,
-            "mobile_utility_consistency": req.utility_velocity_score,
-        },
-        ai_reasoning=reasoning,
+            "V1": V1 / SCALE,
+            "V2": V2 / SCALE,
+            "V3": V3 / SCALE,
+            "V4": V4 / SCALE
+        }
     )
-
 
 @router.post("/zk-proof", response_model=ZKProofResponse)
 async def generate_zk_credit_proof(req: ZKProofRequest):
     """
-    Generates a Zero-Knowledge Credential (zk-Credit) JSON-LD proof.
-    Allows unbanked borrowers to prove they meet a lender's credit threshold
-    without revealing their identity, remittance history, or private transaction data.
+    [SIMULATED] Generates a Zero-Knowledge proof.
+    The lender only receives the proof and public inputs (threshold_met, model_version, nullifier).
+    They never learn the borrower's identity, actual score, or raw telemetry.
     """
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    # For MVP simulation, we pretend the Oracle generates the proof locally on behalf of the user.
+    threshold_met = True # Assumed true for simulation
     
-    # Generate cryptographic commitment (pedersen hash simulation)
-    salt = secrets.token_hex(16)
-    commitment_input = f"{req.applicant_id}:{req.min_required_score}:{salt}:{timestamp}"
-    commitment_hash = hashlib.sha256(commitment_input.encode("utf-8")).hexdigest()
-
-    proof_id = f"zk-cred-{secrets.token_hex(8)}"
-
+    # Simulate a Groth16 / Circom proof payload
+    proof_str = f"0xGroth16Proof_Applicant{req.applicant_id}_Threshold{req.min_required_score}"
+    
+    public_inputs = ZKProofPublicInputs(
+        score_threshold_met=threshold_met,
+        model_version=MODEL_VERSION,
+        pool_scoped_nullifier=req.pool_scoped_nullifier
+    )
+    
     return ZKProofResponse(
-        proof_id=proof_id,
-        proof_type="ZK-TrustScore-Tier1",
-        is_verified=True,
-        threshold_met=True,
-        issued_at=timestamp,
-        cryptographic_commitment=f"0x{commitment_hash}",
-        disclosed_attributes={
-            "score_threshold_met": f">= {req.min_required_score}",
-            "repayment_solvency_confidence": "98.4%",
-            "verifier_registry": req.verifier_id or "lender_micro_finance_hub",
-        },
-        hidden_attributes=[
-            "applicant_real_name",
-            "exact_income_figure",
-            "past_remittance_addresses",
-            "peer_vouchers_identities",
-        ],
+        proof=proof_str,
+        public_inputs=public_inputs
     )

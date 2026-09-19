@@ -39,43 +39,53 @@ class RemittanceRouteResponse(BaseModel):
 # 2. CREDIT & ZK-PROOF SCHEMAS
 # ==========================================
 
-class CreditEvaluationRequest(BaseModel):
-    applicant_id: Optional[str] = Field(default="user_anon_01", description="Identifier for borrower")
-    remittance_history_score: float = Field(default=210, ge=0, le=250, description="Remittance frequency & volume (0-250)")
-    peer_trust_score: float = Field(default=180, ge=0, le=200, description="Community endorsement score (0-200)")
-    psychometric_quiz_score: float = Field(default=170, ge=0, le=200, description="AI psychometric assessment (0-200)")
-    utility_velocity_score: float = Field(default=160, ge=0, le=200, description="Mobile top-up and utility consistency (0-200)")
-    monthly_income_usd: Optional[float] = Field(default=250.0, description="Estimated monthly earnings")
+class UtilityPaymentReceipt(BaseModel):
+    biller_id: str
+    is_on_time: bool
+    aggregator_signature: str = Field(description="[SIMULATED] Cryptographic signature from the bill aggregator.")
 
+class PeerStake(BaseModel):
+    peer_id: str
+    stake_amount_usd: float
+    duration_days: int
+    peer_repayment_rate: float = Field(..., ge=0, le=1)
+
+class CreditEvaluationRequest(BaseModel):
+    applicant_id: str = Field(default="user_anon_01")
+    # V1 Telemetry
+    remittance_intervals_days: List[float] = Field(default_factory=list, description="Arrival intervals to calculate CV. Requires >= 3.")
+    mean_monthly_inflow_usd: float = Field(default=0.0, ge=0)
+    # V2 Telemetry
+    utility_payments: List[UtilityPaymentReceipt] = Field(default_factory=list, description="Signed utility payment receipts.")
+    utility_streak: int = Field(default=0, ge=0)
+    # V3 Telemetry
+    peer_stakes: List[PeerStake] = Field(default_factory=list, description="Endorsements from peers.")
+    # V4 Telemetry (Optional)
+    v4_assessment_score: Optional[float] = Field(default=None, ge=0, le=1, description="Composite of psychometric factors normalized to [0,1].")
 
 class CreditEvaluationResponse(BaseModel):
     applicant_id: str
-    trust_score: int = Field(..., ge=300, le=850, description="Total score mapped to 300-850 range")
-    credit_tier: str = Field(..., description="Tier 1 (Prime), Tier 2 (Growth), Tier 3 (Micro-Starter)")
-    eligible_microloan_usd: float
-    offered_apr_percent: float
-    traditional_predatory_apr_percent: float = 120.0
-    estimated_monthly_savings_usd: float
-    risk_category: str
-    score_breakdown: Dict[str, float]
-    ai_reasoning: str
-
+    model_version: str
+    trust_score: Optional[int] = Field(None, ge=300, le=850, description="Omitted if INSUFFICIENT_DATA")
+    status: str = Field(..., description="'SUCCESS' or 'INSUFFICIENT_DATA'")
+    reason_codes: List[str]
+    borrower_protection_max_apr: float
+    # These fields are omitted in ZK payload, only used for API debugging/UX
+    score_breakdown: Optional[Dict[str, float]] = None
 
 class ZKProofRequest(BaseModel):
     applicant_id: str
     min_required_score: int = Field(default=600, ge=300, le=850)
-    verifier_id: Optional[str] = Field(default="lender_micro_finance_hub")
+    pool_scoped_nullifier: str = Field(..., description="Prevents proof replay across the same lending pool.")
 
+class ZKProofPublicInputs(BaseModel):
+    score_threshold_met: bool
+    model_version: str
+    pool_scoped_nullifier: str
 
 class ZKProofResponse(BaseModel):
-    proof_id: str
-    proof_type: str = "ZK-TrustScore-Tier1"
-    is_verified: bool
-    threshold_met: bool
-    issued_at: str
-    cryptographic_commitment: str
-    disclosed_attributes: Dict[str, Any]
-    hidden_attributes: List[str]
+    proof: str = Field(..., description="Zero-Knowledge Groth16/Circom proof payload.")
+    public_inputs: ZKProofPublicInputs
 
 
 # ==========================================
