@@ -146,7 +146,6 @@ export default function TransfersPage() {
   const activeUserId = user?.uid || "demo-user-123"
 
   const [view, setView] = useState<PageView>("wallet")
-  const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
   const [cardDanger, setCardDanger] = useState(false)
   const [allRoutes, setAllRoutes] = useState<RouteOption[]>([])
 
