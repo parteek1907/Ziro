@@ -95,7 +95,13 @@ export default function DashboardOverview() {
   const DEMO_WALLET = "0xDemoWallet123"
 
   const fetchData = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setLoadingBalance(false)
+      setBalanceError(true)
+      setLoadingTrust(false)
+      setTrustError(true)
+      return
+    }
 
     // Balance
     setLoadingBalance(true)

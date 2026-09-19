@@ -20,7 +20,17 @@ export default function TrustScorePage() {
   const DEMO_WALLET = "0xDemoWallet123"
 
   const fetch = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      setError(true)
+      setData({
+        trust_score: 740,
+        grade: "Excellent",
+        score_breakdown: { payment_consistency: 88, transaction_history: 76, community_trust: 92 },
+        recommendation: "Keep maintaining consistent payment behavior to improve your score further.",
+      })
+      return
+    }
     setLoading(true); setError(false)
     try {
       const res = await evaluateTrustScore(user.uid, DEMO_WALLET)
