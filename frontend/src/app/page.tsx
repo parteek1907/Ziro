@@ -39,18 +39,13 @@ export default function Home() {
     <div className="min-h-screen bg-[#F8F9FA]">
       
       {/* FULL BLEED HERO CONTAINER WITH ROUNDED BOTTOM */}
-      <section className="relative w-full bg-[#0F1012] rounded-b-[48px] lg:rounded-b-[60px] overflow-hidden flex flex-col min-h-screen pb-16 lg:pb-20">
+      <section className="relative w-full bg-[#0F1012] rounded-b-[48px] lg:rounded-b-[60px] overflow-hidden flex flex-col min-h-[110vh] pb-32 lg:pb-48">
         
         {/* NAV INSIDE HERO */}
         <nav className="w-full px-8 pt-6 pb-2 flex items-center justify-between relative z-50">
           
           {/* Left Links */}
           <div className="hidden md:flex items-center gap-8 md:flex-1">
-            {["Encryption", "Features", "Security"].map((item) => (
-              <Link key={item} href={`#${item.toLowerCase()}`} className="text-[#8B8F98] hover:text-white transition-colors text-sm font-medium">
-                {item}
-              </Link>
-            ))}
           </div>
 
           {/* Logo - use scale to enlarge visually without inflating the nav height */}
@@ -159,10 +154,10 @@ export default function Home() {
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="text-[2rem] lg:text-[2.6rem] font-bold leading-[1.1] tracking-tight mb-4 text-black uppercase max-w-md"
           >
-            Build a fintech with<br />banking as a service
+            Smarter routing.<br />Better payments.
           </motion.h2>
           <p className="text-[#8B8F98] text-sm lg:text-base leading-relaxed mb-8 max-w-md font-medium">
-            Keep your business account and all your finance needs safely organized under one roof. Manage money quickly, easily & efficiently. Whether you're alone or leading a team.
+            Ziro intelligently routes payments across traditional and decentralized rails to help users find a more efficient settlement path.
           </p>
 
           {/* Form Mockup Area */}
@@ -227,10 +222,10 @@ export default function Home() {
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="text-[2rem] lg:text-[2.6rem] font-bold leading-[1.1] tracking-tight mb-4 text-black uppercase max-w-md"
           >
-            Accept and optimize payment globally
+            Protected payments.<br />Human support.
           </motion.h2>
           <p className="text-[#8B8F98] text-sm lg:text-base leading-relaxed mb-8 max-w-md font-medium">
-            Keep your business account and all your finance needs safely organized under one roof. Manage money quickly, easily & efficiently. Whether you're alone or leading a team.
+            Detect scams and address-poisoning before they become costly mistakes, with verified consultants available when you need personal help.
           </p>
 
           {/* Overlapping Vertical Cards (Cut off at bottom) */}
@@ -274,7 +269,7 @@ export default function Home() {
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="text-[2.2rem] lg:text-[3.5rem] font-bold tracking-tight text-center text-[#0B1220] mb-16 max-w-4xl leading-[1.1]"
           >
-            Easy to use mobile app that<br />support on android and ios.
+            A seamless web experience that makes payments simple, secure, and accessible from any device.
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full h-auto md:h-[600px] lg:h-[650px]">
@@ -283,7 +278,7 @@ export default function Home() {
             <div className="relative bg-[#3B7DFF] rounded-[40px] p-8 lg:p-10 overflow-hidden flex flex-col min-h-[450px] lg:min-h-full shadow-xl">
               <div className="flex justify-between items-start relative z-20">
                 <div className="relative">
-                  <h3 className="text-[2.5rem] lg:text-[3.5rem] font-medium text-white tracking-tight leading-[1.05]">Visa<br />Support</h3>
+                  <h3 className="text-[2.5rem] lg:text-[3.5rem] font-medium text-white tracking-tight leading-[1.05]">SMART<br />SETTLEMENT</h3>
                 </div>
                 <div className="text-white text-4xl lg:text-5xl mt-2 font-light">✳</div>
               </div>
@@ -313,15 +308,15 @@ export default function Home() {
                  <CreditCard type="cyan-black" style={{ width: '100%', height: '100%' }} />
               </motion.div>
 
-              <h3 className="text-[2.5rem] lg:text-[3.2rem] font-medium text-[#1A1A2E] tracking-tight relative z-20 text-center mt-auto w-full">Always <span className="font-bold">there</span></h3>
+              <h3 className="text-[2.5rem] lg:text-[3.2rem] font-medium text-[#1A1A2E] tracking-tight relative z-20 text-center mt-auto w-full">ALWAYS <span className="font-bold">PROTECTED</span></h3>
             </div>
 
             {/* Box 3: Design your Personalized Card */}
             <div className="relative bg-[#0F0F0F] rounded-[40px] p-8 lg:p-10 overflow-hidden flex flex-col min-h-[450px] lg:min-h-full shadow-xl">
               <h3 className="text-[2.5rem] lg:text-[3.2rem] font-medium text-white tracking-tight leading-[1.05] relative z-20">
-                Design your<br />
-                <span className="text-[#35E58A] italic">Personalized</span><br />
-                Card
+                GET HELP<br />
+                <span className="text-[#35E58A] italic">WHEN YOU</span><br />
+                NEED IT
               </h3>
               
               {/* Lilac/Black Card horizontally centered but anchored to bottom */}
@@ -347,7 +342,7 @@ export default function Home() {
           
           {/* Left: Text Content */}
           <div className="w-full lg:w-[40%] flex flex-col justify-center lg:pr-10 mb-12 lg:mb-0">
-            <div className="text-[#3B7DFF] font-bold tracking-wide text-xs lg:text-sm mb-6">Global Scale</div>
+            <div className="text-[#3B7DFF] font-bold tracking-wide text-xs lg:text-sm mb-6">GLOBAL SETTLEMENT</div>
             <motion.h2 
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -355,10 +350,10 @@ export default function Home() {
               transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
               className="text-[2.5rem] lg:text-[3.2rem] font-bold uppercase leading-[1.05] mb-8 text-black tracking-tight"
             >
-              Sell everywhere<br />in global<br />commerce
+              MOVE MONEY<br />ACROSS<br />BORDERS
             </motion.h2>
             <p className="text-[#8B8F98] text-sm lg:text-base leading-relaxed max-w-md font-medium">
-              When you sell your software products to global customers, accepting local payment methods is critical in capturing the total market opportunity. Don't let payment friction get in the way of a single sale. Allow customers to pay in their local currency.
+              Send payments across borders with intelligent settlement routing. Ziro compares traditional and decentralized payment rails to help find an efficient path for every transfer.
             </p>
           </div>
 
@@ -373,43 +368,43 @@ export default function Home() {
               <div className="absolute top-[10%] left-[5%] lg:left-[10%] bg-white rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex items-center gap-3 border border-slate-50 w-[200px] z-10 hover:scale-105 transition-transform">
                 <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center text-red-500 text-[10px]">🇺🇸</div>
                 <div className="flex-1">
-                  <div className="text-[9px] font-bold leading-tight text-black">Bill Chunky <span className="font-medium text-slate-400">purchased iPhone 14 Pro Mockup</span></div>
+                  <div className="text-[9px] font-bold leading-tight text-black">Maria Garcia <span className="font-medium text-slate-400">USD → MXN</span></div>
                 </div>
-                <div className="text-[10px] font-bold text-emerald-500">$23.00</div>
+                <div className="text-[10px] font-bold text-emerald-500">$420.00</div>
               </div>
 
               {/* Widget 2 (India/Asia) */}
               <div className="absolute top-[40%] right-[0%] lg:right-[10%] bg-white rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex items-center gap-3 border border-slate-50 w-[200px] z-10 hover:scale-105 transition-transform">
                 <div className="w-6 h-6 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 text-[10px]">🇮🇳</div>
                 <div className="flex-1">
-                  <div className="text-[9px] font-bold leading-tight text-black">Nishatna <span className="font-medium text-slate-400">purchased iPhone 14 Pro Mockup</span></div>
+                  <div className="text-[9px] font-bold leading-tight text-black">Arjun Mehta <span className="font-medium text-slate-400">USD → INR</span></div>
                 </div>
-                <div className="text-[10px] font-bold text-emerald-500">$23.00</div>
+                <div className="text-[10px] font-bold text-emerald-500">$1,250.00</div>
               </div>
 
-              {/* Widget 3 (Global/Africa) */}
+              {/* Widget 3 (Global/Singapore) */}
               <div className="absolute bottom-[20%] left-[30%] lg:left-[35%] bg-white rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.08)] flex items-center gap-3 border border-slate-50 w-[200px] z-10 hover:scale-105 transition-transform">
-                <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-[10px]">🌐</div>
+                <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-[10px]">🇸🇬</div>
                 <div className="flex-1">
-                  <div className="text-[9px] font-bold leading-tight text-black">Alana <span className="font-medium text-slate-400">upgraded to Team Pro License</span></div>
+                  <div className="text-[9px] font-bold leading-tight text-black">Liam Chen <span className="font-medium text-slate-400">USD → SGD</span></div>
                 </div>
-                <div className="text-[10px] font-bold text-emerald-500">$52.00</div>
+                <div className="text-[10px] font-bold text-emerald-500">$680.00</div>
               </div>
             </div>
 
             {/* Stats Area */}
             <div className="flex flex-wrap items-center justify-between gap-6 lg:gap-12 mt-8 lg:mt-12 pt-8 border-t border-slate-50 lg:pl-12">
               <div>
-                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">132+</div>
-                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">Currencies supported</div>
+                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">2</div>
+                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">Settlement Rails</div>
               </div>
               <div>
-                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">85.5%</div>
-                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">businesses using Ziro</div>
+                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">0-CONNECTIVITY</div>
+                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">Offline Payment Engine</div>
               </div>
               <div>
-                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">150M</div>
-                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">API request per day</div>
+                <div className="text-2xl lg:text-3xl font-bold text-black mb-1 tracking-tight">1-TO-1</div>
+                <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider">Human Consultant Support</div>
               </div>
             </div>
             
@@ -444,10 +439,10 @@ export default function Home() {
               transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
               className="text-[2.5rem] lg:text-[4.5rem] font-bold uppercase leading-[1.05] text-white tracking-tight max-w-4xl mx-auto mb-6"
             >
-              Simplifying payments<br />for growing business
+              MAKING PAYMENTS<br />SIMPLE, SAFE,<br />AND ACCESSIBLE
             </motion.h2>
             <p className="text-white/80 text-sm lg:text-base font-medium">
-              Join over 300+ partners and customers already growing with Ziro
+              Smart settlement, payment protection, offline payments, and human support — all in one place.
             </p>
           </div>
 
@@ -482,15 +477,15 @@ export default function Home() {
           <div className="absolute bottom-[20%] lg:bottom-[25%] left-[5%] lg:left-[15%] bg-white rounded-2xl p-3 shadow-2xl flex items-center gap-3 z-40 w-[200px] lg:w-[220px]">
             <div className="w-6 h-6 rounded-full bg-red-50 flex items-center justify-center text-red-500 text-[10px]">🇺🇸</div>
             <div className="flex-1 text-[9px] font-bold text-black leading-tight">
-              Bill Chunky <span className="text-slate-400 font-medium">purchased iPhone 14 Pro Mockup</span>
+              Maria Garcia <span className="text-slate-400 font-medium">International Transfer</span>
             </div>
-            <div className="text-[10px] font-bold text-emerald-500">$23.00</div>
+            <div className="text-[10px] font-bold text-emerald-500">$420.00</div>
           </div>
 
           <div className="absolute top-[50%] lg:top-[45%] right-[5%] lg:right-[15%] bg-white rounded-2xl p-3 shadow-2xl flex items-center gap-3 z-40 w-[200px] lg:w-[220px]">
             <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 text-[10px]">🌐</div>
             <div className="flex-1 text-[9px] font-bold text-black leading-tight">
-              Alana <span className="text-slate-400 font-medium">upgraded to Team Pro License</span>
+              Liam Chen <span className="text-slate-400 font-medium">Payment Protected</span>
             </div>
             <div className="text-[10px] font-bold text-emerald-500">$152.00</div>
           </div>

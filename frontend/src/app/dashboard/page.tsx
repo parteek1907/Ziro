@@ -151,7 +151,7 @@ export default function DashboardOverview() {
     : []
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pt-2">
+    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8">
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
@@ -232,7 +232,7 @@ export default function DashboardOverview() {
               <Skeleton className="w-24 h-10 mb-3" />
               <div className="flex items-end gap-1.5 h-10">
                 {[40, 60, 30, 100, 75].map((h, i) => (
-                  <Skeleton key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%` }} />
+                  <div key={i} className="flex-1 rounded-t-sm bg-black/5" style={{ height: `${h}%` }} />
                 ))}
               </div>
             </>

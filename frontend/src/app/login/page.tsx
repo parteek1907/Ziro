@@ -55,8 +55,8 @@ export default function LoginPage() {
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#2161E8]/10 blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#35E58A]/10 blur-[120px] pointer-events-none"></div>
         
-        <Link href="/" className="text-white font-bold text-3xl tracking-tight relative z-10">
-          Ziro
+        <Link href="/" className="relative z-10 inline-block">
+          <img src="/logo.png" alt="Ziro Logo" className="h-8 md:h-10 w-auto object-contain brightness-0 invert scale-[2] md:scale-[2.5] origin-left" />
         </Link>
 
         <div className="relative z-10 mb-12">
@@ -78,8 +78,8 @@ export default function LoginPage() {
           className="w-full max-w-md"
         >
           <div className="lg:hidden mb-12">
-            <Link href="/" className="text-white font-bold text-3xl tracking-tight">
-              Ziro
+            <Link href="/" className="inline-block">
+              <img src="/logo.png" alt="Ziro Logo" className="h-8 w-auto object-contain brightness-0 invert scale-[2] origin-left" />
             </Link>
           </div>
 

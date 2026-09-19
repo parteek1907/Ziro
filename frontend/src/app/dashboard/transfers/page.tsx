@@ -233,7 +233,7 @@ export default function TransfersPage() {
     "border-white/40 focus:border-[#4a72ff]"
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pt-2">
+    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8">
 
       <AnimatePresence>
         {toast && <Toast message={toast.msg} type={toast.type} onDismiss={dismissToast} />}
