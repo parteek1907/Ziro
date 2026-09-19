@@ -67,7 +67,18 @@ def test_medium_risk_requires_confirmation():
     assert execute_res.status_code == 200
     assert execute_res.json()["state"] == PaymentState.SETTLED
 
-def test_high_risk_rejection():
+from unittest.mock import patch
+from app.models.fraud import FraudAnalysisResponse
+
+@patch("app.services.fraud_detector.fraud_detector.analyze")
+def test_high_risk_rejection(mock_analyze):
+    mock_analyze.return_value = FraudAnalysisResponse(
+        risk_level="HIGH",
+        risk_score=90,
+        red_flags=["Scam"],
+        explanation="AI detected scam.",
+        recommended_action="Block"
+    )
     # High risk keyword "lottery"
     payload = {
         "idempotency_key": str(uuid.uuid4()),

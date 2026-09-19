@@ -2,20 +2,29 @@ import time
 import pytest
 from httpx import AsyncClient
 
+import hashlib
+
 @pytest.fixture
 def valid_payload():
+    sender = "0xSender123"
+    recipient = "0xRecipient456"
+    amount = 100.0
+    nonce = 1
+    expected_hash_bytes = hashlib.sha256(f"{sender}-{recipient}-{amount}-{nonce}".encode()).digest()
+    signature = "0x" + expected_hash_bytes.hex()
+    
     return {
         "transaction_id": "tx_offline_001",
-        "sender": "0xSender123",
-        "recipient": "0xRecipient456",
-        "amount": 100.0,
+        "sender": sender,
+        "recipient": recipient,
+        "amount": amount,
         "currency": "USDC",
         "chain": "simulation",
-        "nonce": 1,
+        "nonce": nonce,
         "created_at": int(time.time()),
         "expires_at": int(time.time()) + 3600,
         "payment_intent": "groceries",
-        "signature": "0xvalid_sig_abc123"
+        "signature": signature
     }
 
 @pytest.mark.asyncio

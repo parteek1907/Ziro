@@ -19,7 +19,7 @@ async def test_create_wallet_invalid_address(async_client: AsyncClient):
         json={"chain": "polygon", "public_address": "invalid_address"}
     )
     assert response.status_code == 400
-    assert "Invalid polygon address format" in response.json()["detail"]
+    assert "Invalid polygon address format" in response.text
 
 @pytest.mark.asyncio
 async def test_list_wallets(async_client: AsyncClient):

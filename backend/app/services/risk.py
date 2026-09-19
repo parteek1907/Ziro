@@ -22,22 +22,24 @@ class AIPaymentFirewall:
             risk_score += 40
             reasons.append(f"Unusually large transaction amount: {request.amount} {request.currency}.")
             
-        # 2. Simulated AI Intent Analysis
-        # In production, this calls Groq/Gemini with the payment_intent
-        intent_lower = request.payment_intent.lower()
+        # 2. AI Intent & Fraud Analysis (Real Gemini Integration)
+        from app.models.fraud import FraudAnalysisRequest
+        from app.services.fraud_detector import fraud_detector
         
-        high_risk_keywords = ["urgent", "irs", "taxes", "prince", "lottery", "bail"]
-        medium_risk_keywords = ["investment", "crypto", "unknown", "fee"]
+        fraud_req = FraudAnalysisRequest(text=request.payment_intent)
+        fraud_res = fraud_detector.analyze(fraud_req)
         
-        for kw in high_risk_keywords:
-            if kw in intent_lower:
-                risk_score += 50
-                warnings.append(f"AI flagged high-risk keyword in intent: '{kw}'. This resembles common scam patterns.")
-                
-        for kw in medium_risk_keywords:
-            if kw in intent_lower:
-                risk_score += 20
-                warnings.append(f"AI flagged medium-risk context in intent: '{kw}'.")
+        # Incorporate AI Fraud Score
+        # We scale the AI risk score to contribute to the firewall's overall score
+        # e.g., if AI says 100% scam, we add 70 points to the firewall.
+        ai_contribution = round(fraud_res.risk_score * 0.7)
+        risk_score += ai_contribution
+        
+        if fraud_res.risk_level == "HIGH":
+            warnings.append(f"AI Fraud Detector flagged HIGH risk: {fraud_res.explanation}")
+            warnings.extend([f"AI Flag: {flag}" for flag in fraud_res.red_flags])
+        elif fraud_res.risk_level == "MEDIUM":
+            warnings.append(f"AI Fraud Detector flagged MEDIUM risk: {fraud_res.explanation}")
 
         # 3. Aggregation & Decision Logic
         # Cap score at 100
