@@ -1,12 +1,12 @@
 {
-  "name": "future-finance-workspace",
+  "name": "Ziro-workspace",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --prefix future-finance",
-    "build": "npm run build --prefix future-finance",
-    "start": "npm run start --prefix future-finance",
-    "frontend": "npm run dev --prefix future-finance",
+    "dev": "npm run dev --prefix Ziro",
+    "build": "npm run build --prefix Ziro",
+    "start": "npm run start --prefix Ziro",
+    "frontend": "npm run dev --prefix Ziro",
     "backend": "uvicorn app.main:app --app-dir backend --reload --port 8000"
   }
 }

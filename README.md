@@ -8,7 +8,7 @@ Platform powering gasless L2 remittances, AI-driven alternative credit scoring (
 
 ```text
 Prayas/
-├── future-finance/        # Next.js 16 + React 19 + Tailwind CSS Frontend
+├── Ziro/        # Next.js 16 + React 19 + Tailwind CSS Frontend
 │   ├── src/
 │   │   ├── app/           # App router pages & styles
 │   │   └── components/    # Reusable UI components (Navbar, Footer, Widgets)
@@ -32,7 +32,7 @@ Prayas/
 ### 1. Frontend (Next.js)
 Open a terminal in the root folder:
 ```powershell
-cd future-finance
+cd Ziro
 npm run dev
 ```
 > Or directly from root: `npm run dev`
