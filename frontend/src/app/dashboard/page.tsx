@@ -136,7 +136,7 @@ export default function DashboardOverview() {
   const displayBalance = balance
     ? `$${balance.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : balanceError
-    ? "$42,280.50"   // graceful fallback
+    ? "$54,904.80"   // graceful fallback
     : "$0.00"
 
   const displayScore = trustScore
