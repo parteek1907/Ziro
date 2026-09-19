@@ -6,32 +6,17 @@ Python FastAPI backend providing:
 3. **Zero-Connectivity Offline Vault & Edge Guard** (`/api/offline/edge-guard`, `/api/offline/sync`)
 4. **Multilingual Inclusion Mentor** (`/api/mentor/chat`)
 
----
-
 ## 🚀 How to Run Locally
 
 ### 1. Prerequisites
-- Python 3.11+ (Python 3.14 detected)
+- Python 3.11+
 - pip
 
-### 2. Setup Virtual Environment (Recommended)
-Open a terminal in the `backend` folder:
+### 2. Setup
 ```powershell
 cd backend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-```
-
-### 3. Install Dependencies
-```powershell
 pip install -r requirements.txt
+fastapi dev app/main.py
 ```
-
-### 4. Run the Server
-```powershell
-uvicorn app.main:app --reload --port 8000
-```
-
-### 5. Access Interactive API Documentation
-- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-- Health Check: [http://localhost:8000/health](http://localhost:8000/health)
