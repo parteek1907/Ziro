@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/AuthContext"
+import { FinanceProvider } from "@/lib/FinanceContext"
 
 
 export default function DashboardLayout({
@@ -96,7 +97,9 @@ export default function DashboardLayout({
         <main className="flex-1 flex flex-col overflow-hidden relative">
           {/* Scrollable Page Content */}
           <div className="flex-1 overflow-y-auto relative z-10 custom-scrollbar flex flex-col">
-            {children}
+            <FinanceProvider>
+              {children}
+            </FinanceProvider>
           </div>
         </main>
 

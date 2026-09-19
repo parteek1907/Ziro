@@ -14,6 +14,7 @@ import type {
 import Link from "next/link"
 import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
 import { ZiroTicket } from "@/components/ui/ziro-ticket"
+import { useFinance } from "@/lib/FinanceContext"
 
 // ─── Constants ───────────────────────────────────────────────
 const CONTACTS = [
@@ -152,7 +153,9 @@ export default function TransfersPage() {
   const [isRecurring, setIsRecurring] = useState(false)
 
   const [recipientState, setRecipientState] = useState<RecipientState>("idle")
-  const [toast, setToast] = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
+  const [toast, setToast]                   = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
+  
+  const { totalBalance, deductBalance, addTransaction } = useFinance()
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
   const [showRiskModal, setShowRiskModal] = useState(false)
   const [riskWarnings, setRiskWarnings] = useState<string[]>([])
@@ -221,12 +224,30 @@ export default function TransfersPage() {
   // "Confirm & Send" on the confirmation card
   const handleConfirmSend = useCallback(async () => {
     try {
+      const totalAmt = parseFloat(amount) || 0
+      const feeThreshold = FEE_THRESHOLDS[currency] || 50
+      const feesAmt = totalAmt > feeThreshold ? totalAmt * 0.002 : 0
+      const usdToDeduct = (totalAmt + feesAmt) / (EXCHANGE_RATES[currency] || 1)
+      
+      deductBalance(usdToDeduct)
+      
+      addTransaction({
+        id: `tx-${Math.floor(Math.random() * 10000)}`,
+        type: "Transfer",
+        to: recipient,
+        route: `${currency} → ${currency}`,
+        amount: `-${CURRENCY_SYMBOLS[currency] || ""}${(totalAmt + feesAmt).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+        status: "Completed",
+        time: "Just now",
+        ref: `ZR-${Math.floor(1000 + Math.random() * 9000)}`
+      })
+      
       setView("done")
     } catch (err: any) {
       console.error("Payment execution error:", err)
       setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
     }
-  }, [activeUserId, recipient, amount, currency, note, fundingSource])
+  }, [activeUserId, recipient, amount, currency, note, fundingSource, deductBalance, addTransaction])
 
   const handleRiskProceed = useCallback(async () => {
     setShowRiskModal(false)
@@ -257,7 +278,7 @@ export default function TransfersPage() {
   const feesAmount = totalAmount > feeThreshold ? totalAmount * 0.002 : 0
   const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
 
-  const currentBalanceUSD = 54904.80 // ALWAYS use total balance
+  const currentBalanceUSD = totalBalance // ALWAYS use total balance from context
   const currentBalance = currentBalanceUSD * (EXCHANGE_RATES[currency] || 1)
   const isInsufficientFunds = (totalAmount + feesAmount) > currentBalance
 

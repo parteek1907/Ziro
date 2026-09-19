@@ -6,14 +6,7 @@ import { useAuth } from "@/lib/AuthContext"
 import { getBalance, evaluateTrustScore } from "@/lib/api"
 import type { BalanceResponse, TrustScoreResponse } from "@/lib/api"
 import Link from "next/link"
-
-// ─── Mock transactions (will be replaced once /api/v1/transactions is available) ───
-const MOCK_TRANSACTIONS = [
-  { id: "tx-1", type: "Settlement", to: "Maria Garcia", route: "USD → MXN", amount: "-$450.00", status: "Completed", time: "12 mins ago" },
-  { id: "tx-2", type: "Transfer",   to: "James Wilson",  route: "USD → INR", amount: "+$2,000.00", status: "Completed", time: "34 mins ago" },
-  { id: "tx-3", type: "Payment",    to: "L2 Wallet",     route: "USD → KES", amount: "-$124.50",   status: "Pending",   time: "1 hour ago" },
-  { id: "tx-4", type: "Transfer",   to: "Amara",         route: "USD → KES", amount: "-$8,400.00", status: "Completed", time: "2 hours ago" },
-]
+import { useFinance } from "@/lib/FinanceContext"
 
 // ─── Skeleton loader ──────────────────────────────────────────
 function Skeleton({ className = "" }: { className?: string }) {
@@ -83,12 +76,10 @@ function StatCard({
 // ─── Main page ───────────────────────────────────────────────
 export default function DashboardOverview() {
   const { user } = useAuth()
+  const { totalBalance, transactions } = useFinance()
 
-  const [balance, setBalance]       = useState<BalanceResponse | null>(null)
   const [trustScore, setTrustScore] = useState<TrustScoreResponse | null>(null)
-  const [balanceError, setBalanceError]     = useState(false)
   const [trustError, setTrustError]         = useState(false)
-  const [loadingBalance, setLoadingBalance] = useState(true)
   const [loadingTrust, setLoadingTrust]     = useState(true)
 
   // Demo wallet — in production this comes from the connected wallet
@@ -96,23 +87,9 @@ export default function DashboardOverview() {
 
   const fetchData = useCallback(async () => {
     if (!user) {
-      setLoadingBalance(false)
-      setBalanceError(true)
       setLoadingTrust(false)
       setTrustError(true)
       return
-    }
-
-    // Balance
-    setLoadingBalance(true)
-    setBalanceError(false)
-    try {
-      const data = await getBalance(DEMO_WALLET)
-      setBalance(data)
-    } catch {
-      setBalanceError(true)
-    } finally {
-      setLoadingBalance(false)
     }
 
     // TrustScore
@@ -133,11 +110,7 @@ export default function DashboardOverview() {
   }, [fetchData])
 
   // Derived display values
-  const displayBalance = balance
-    ? `$${balance.balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : balanceError
-    ? "$54,904.80"   // graceful fallback
-    : "$0.00"
+  const displayBalance = `$${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const displayScore = trustScore
     ? trustScore.trust_score.toString()
@@ -212,7 +185,7 @@ export default function DashboardOverview() {
           sub="+$4,580.50 this month"
           badge="+12.4%"
           badgeColor="blue"
-          loading={loadingBalance}
+          loading={false}
           delay={0.1}
         />
 
@@ -311,7 +284,7 @@ export default function DashboardOverview() {
             </div>
 
             <div className="divide-y divide-black/5">
-              {MOCK_TRANSACTIONS.map((tx) => (
+              {transactions.slice(0, 4).map((tx) => (
                 <div key={tx.id} className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer rounded-2xl mx-1 my-1">
                   <div className="col-span-2 text-xs font-bold text-slate-700">{tx.type}</div>
                   <div className="col-span-4">
