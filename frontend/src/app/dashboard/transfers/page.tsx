@@ -7,6 +7,7 @@ import { checkRecipient, compareRoutes, analyzeRisk } from "@/lib/api"
 import type { RouteOption, RiskAnalysisResponse } from "@/lib/api"
 import Link from "next/link"
 import { useFinance } from "@/lib/FinanceContext"
+import NumberFlow from "@number-flow/react"
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -521,15 +522,17 @@ export default function TransfersPage() {
               {/* Amount Display */}
               <div className="text-center mb-2">
                 <div className="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight tabular-nums min-h-[72px] flex items-center justify-center">
-                  <AnimatePresence mode="popLayout">
-                    {amount ? (
-                      <motion.span key={amount} initial={{ y: 12, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
-                        {sym}{amount}
-                      </motion.span>
-                    ) : (
-                      <motion.span key="empty" className="text-slate-200">{sym}0</motion.span>
-                    )}
-                  </AnimatePresence>
+                  <div className={`flex items-baseline ${amount === "" ? "opacity-30" : "opacity-100"}`}>
+                    <NumberFlow 
+                      value={Number(amount) || 0} 
+                      format={{ 
+                        style: 'currency', 
+                        currency: currency,
+                        minimumFractionDigits: amount.includes('.') && !amount.endsWith('.') ? amount.split('.')[1].length : 0
+                      }} 
+                    />
+                    {amount.endsWith('.') && <span>.</span>}
+                  </div>
                 </div>
                 {isInsufficientFunds && amount && <div className="text-xs font-bold text-red-500 mt-2">Insufficient funds (Max: {formatCurrency(currentBalance)})</div>}
               </div>
