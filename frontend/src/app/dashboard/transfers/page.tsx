@@ -13,14 +13,14 @@ import type {
 } from "@/lib/api"
 import Link from "next/link"
 import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
-import { ZiroTicket } from "@/components/ui/ticket-confirmation-card"
+import { ZiroTicket } from "@/components/ui/ziro-ticket"
 
 // ─── Constants ───────────────────────────────────────────────
 const CONTACTS = [
   { id: 1, handle: "@parteek", name: "Parteek", img: "https://i.pravatar.cc/150?img=11" },
-  { id: 2, handle: "@alex", name: "Alex", img: "https://i.pravatar.cc/150?img=12" },
-  { id: 3, handle: "@sarah", name: "Sarah", img: "https://i.pravatar.cc/150?img=5" },
-  { id: 4, handle: "@jordan", name: "Jordan", img: "https://i.pravatar.cc/150?img=33" }
+  { id: 2, handle: "@darsh", name: "Darsh", img: "https://i.pravatar.cc/150?img=12" },
+  { id: 3, handle: "@aditya", name: "Aditya", img: "https://i.pravatar.cc/150?img=13" },
+  { id: 4, handle: "@nipun", name: "Nipun", img: "https://i.pravatar.cc/150?img=33" }
 ]
 
 const FUNDING_SOURCES = [
@@ -219,18 +219,10 @@ export default function TransfersPage() {
   // "Confirm & Send" on the confirmation card
   const handleConfirmSend = useCallback(async () => {
     try {
-      setIsExecuting(true)
-      setExecutionStatus("Authorizing...")
-      await new Promise(r => setTimeout(r, 800))
-      setExecutionStatus("Executing transfer...")
-      await new Promise(r => setTimeout(r, 1200))
-      
       setView("done")
     } catch (err: any) {
       console.error("Payment execution error:", err)
       setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
-    } finally {
-      setIsExecuting(false)
     }
   }, [activeUserId, recipient, amount, currency, note, fundingSource])
 
@@ -259,11 +251,11 @@ export default function TransfersPage() {
   }
 
   const totalAmount = parseFloat(amount) || 0
-  const feesAmount = totalAmount * 0.002
+  const feesAmount = totalAmount > 50 ? totalAmount * 0.002 : 0
   const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
 
   return (
-    <div className={`w-full flex flex-col items-center justify-center px-4 relative select-none ${view === "confirm" ? "h-full py-2 overflow-hidden" : "min-h-[85vh] py-8"}`}>
+    <div className={`w-full flex-1 flex flex-col items-center justify-center px-4 md:px-8 mx-auto relative select-none ${view === "confirm" ? "py-2 overflow-hidden" : "py-8"}`}>
       {/* Wallet CSS — properly scoped, cards stay BELOW title */}
       <style dangerouslySetInnerHTML={{ __html: `
         .ziro-wallet {
@@ -605,10 +597,10 @@ export default function TransfersPage() {
             key="done-view"
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="flex items-center justify-center"
+            className="flex items-center justify-center w-full"
           >
             <ZiroTicket
-              paymentId={currentPayment?.payment_id || "ZR-" + Date.now()}
+              paymentId={currentPayment?.payment_id || "ZR-" + Math.floor(Math.random() * 10000000)}
               amount={totalAmount}
               fees={feesAmount}
               currency={currency}
