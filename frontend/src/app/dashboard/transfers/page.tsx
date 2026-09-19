@@ -44,8 +44,9 @@ const FUNDING_SOURCES = [
   }
 ]
 
-const CURRENCIES = ["USD", "EUR", "GBP", "USDC"]
-const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" }
+const CURRENCIES = ["USD", "EUR", "GBP", "INR"]
+const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", INR: "₹" }
+const EXCHANGE_RATES: Record<string, number> = { USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.12 }
 
 // ─── Types ───────────────────────────────────────────────────
 type PageView = "wallet" | "form" | "confirm" | "done"
@@ -254,7 +255,8 @@ export default function TransfersPage() {
   const feesAmount = totalAmount > 50 ? totalAmount * 0.002 : 0
   const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
 
-  const currentBalance = fundingSource ? parseFloat(fundingSource.balance.replace(/[^0-9.]/g, '')) : 0
+  const currentBalanceUSD = fundingSource ? parseFloat(fundingSource.balance.replace(/[^0-9.]/g, '')) : 0
+  const currentBalance = currentBalanceUSD * (EXCHANGE_RATES[currency] || 1)
   const isInsufficientFunds = (totalAmount + feesAmount) > currentBalance
 
   return (
@@ -457,7 +459,7 @@ export default function TransfersPage() {
                 <div className="flex items-center justify-center gap-2">
                   <input
                     type="text" inputMode="decimal"
-                    value={amount ? `${currencySymbol}${amount}${currency === "USDC" ? " USDC" : ""}` : ""}
+                    value={amount ? `${currencySymbol}${amount}` : ""}
                     onChange={(e) => {
                       let val = e.target.value.replace(/[^0-9.]/g, '');
                       const parts = val.split('.'); if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
@@ -471,8 +473,8 @@ export default function TransfersPage() {
                 </div>
                 
                 {isInsufficientFunds && (
-                  <div className="text-red-500 text-xs font-bold mt-2 text-center absolute w-full left-0 bottom-[-5px]">
-                    Insufficient funds (Max: {fundingSource?.balance})
+                  <div className="text-red-500 text-xs font-bold mt-2 text-center absolute w-full left-0 bottom-[-20px]">
+                    Insufficient funds (Max: {CURRENCY_SYMBOLS[currency]}{(currentBalance).toLocaleString(undefined, {maximumFractionDigits: 2})})
                   </div>
                 )}
 

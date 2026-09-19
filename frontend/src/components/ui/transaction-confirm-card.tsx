@@ -14,7 +14,7 @@ interface TransactionConfirmCardProps {
   enableAnimations?: boolean;
 }
 
-const SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" };
+const SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", INR: "₹" };
 
 /**
  * High-performance rolling money counter with ease-out exponential deceleration
@@ -73,7 +73,7 @@ function RollingMoney({
       animate={done ? { scale: [1, 1.04, 1] } : {}}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
-      {currency === "USDC" ? `${formatted} USDC` : `${symbol}${formatted}`}
+      {`${symbol}${formatted}`}
     </motion.span>
   );
 }
@@ -108,7 +108,6 @@ export function TransactionConfirmCard({
   };
 
   const formatCurrencyStatic = (val: number) => {
-    if (currency === "USDC") return `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`;
     return `${sym}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
