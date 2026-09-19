@@ -4,167 +4,227 @@ import { motion } from "framer-motion"
 
 export default function DashboardOverview() {
   const transactions = [
-    { id: "tx-1", type: "Settlement", to: "Alice Crypto", amount: "-$450.00", status: "Finalized", time: "2m ago" },
-    { id: "tx-2", type: "Deposit", to: "L2 Wallet", amount: "+$2,000.00", status: "Finalized", time: "1h ago" },
-    { id: "tx-3", type: "Payment", to: "AWS Services", amount: "-$124.50", status: "Finalized", time: "3h ago" },
-    { id: "tx-4", type: "Settlement", to: "0x7a...9b", amount: "-$8,400.00", status: "Finalized", time: "1d ago" },
+    { id: "tx-1", type: "Settlement", to: "Maria Garcia", route: "USD → MXN", amount: "-$450.00", status: "Completed", time: "12 mins ago" },
+    { id: "tx-2", type: "Transfer", to: "James Wilson", route: "USD → INR", amount: "+$2,000.00", status: "Completed", time: "34 mins ago" },
+    { id: "tx-3", type: "Payment", to: "L2 Wallet", route: "USD → KES", amount: "-$124.50", status: "Pending", time: "1 hour ago" },
+    { id: "tx-4", type: "Transfer", to: "Amara", route: "USD → KES", amount: "-$8,400.00", status: "Completed", time: "2 hours ago" },
   ]
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pt-2">
       
-      {/* Top Grid: Balance & Transfer */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl font-bold tracking-tight text-slate-800 mb-2"
+          >
+            Your financial overview
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-sm font-medium text-slate-500"
+          >
+            Everything moving through Ziro, in one place.
+          </motion.p>
+        </div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-center gap-3"
+        >
+          <button className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export Report
+          </button>
+          <button className="bg-slate-800 hover:bg-black text-white font-semibold text-sm px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 shadow-md">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Send Money
+          </button>
+        </motion.div>
+      </div>
+
+      {/* Top Grid: Main Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* Balance Card */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="lg:col-span-2 bg-[#111114] rounded-[24px] border border-white/5 p-8 flex flex-col justify-between relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#2161E8]/10 rounded-full blur-[80px] pointer-events-none"></div>
-          
-          <div>
-            <div className="text-[#8B8F98] text-sm font-bold tracking-widest uppercase mb-2">Total Balance</div>
-            <div className="text-white text-5xl font-bold tracking-tight mb-2">$42,504.80</div>
-            <div className="text-[#35E58A] text-sm font-medium flex items-center gap-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19V5M5 12l7-7 7 7"/>
-              </svg>
-              +$1,240.50 (2.4%) this week
-            </div>
-          </div>
-
-          <div className="flex gap-4 mt-12 relative z-10">
-            <button className="bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-[#F4F5F7] transition-colors flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-              Send
-            </button>
-            <button className="bg-white/5 border border-white/10 text-white font-bold px-6 py-3 rounded-xl hover:bg-white/10 transition-colors flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Receive
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Mini TrustScore */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-gradient-to-br from-[#111114] to-[#0A0A0C] rounded-[24px] border border-white/5 p-8 flex flex-col justify-between"
+          className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-7 shadow-sm flex flex-col justify-between"
         >
           <div className="flex justify-between items-start mb-6">
-            <div className="text-[#8B8F98] text-xs font-bold tracking-widest uppercase">TrustScore</div>
-            <div className="w-2 h-2 rounded-full bg-[#35E58A] shadow-[0_0_8px_#35E58A]"></div>
+            <div className="text-slate-600 text-sm font-semibold">Total Balance</div>
+            <div className="bg-[#4a72ff]/10 text-[#4a72ff] text-[11px] font-bold px-2 py-1 rounded-md">
+              +12.4%
+            </div>
           </div>
-          <div className="text-white text-6xl font-bold tracking-tight mb-6">740</div>
-          
-          <div className="flex items-end gap-1.5 h-16 mb-4">
-            <div className="flex-1 bg-white/5 rounded-t-sm h-[40%]"></div>
-            <div className="flex-1 bg-white/5 rounded-t-sm h-[60%]"></div>
-            <div className="flex-1 bg-white/5 rounded-t-sm h-[30%]"></div>
-            <div className="flex-1 bg-[#2161E8] rounded-t-sm h-[100%] shadow-[0_0_12px_rgba(33,97,232,0.3)]"></div>
-            <div className="flex-1 bg-white/5 rounded-t-sm h-[75%]"></div>
-          </div>
-          
-          <div className="text-[#8B8F98] text-xs font-bold tracking-widest uppercase border-t border-white/5 pt-4 flex justify-between">
-            <span>Behavioral Data</span>
-            <span className="text-white">Excellent</span>
+          <div>
+            <div className="text-slate-800 text-[2.5rem] font-bold tracking-tight mb-1 leading-none">$42,280.50</div>
+            <div className="text-slate-500 text-xs font-medium">+$4,580.50 this month</div>
           </div>
         </motion.div>
-      </div>
 
-      {/* Bottom Grid: Recent Activity & Quick Transfer */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Recent Activity Table */}
+        {/* TrustScore / Orders Completed */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="lg:col-span-2 bg-[#111114] rounded-[24px] border border-white/5 overflow-hidden"
+          className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-7 shadow-sm flex flex-col justify-between"
         >
-          <div className="p-6 border-b border-white/5 flex justify-between items-center">
-            <h3 className="text-white font-bold tracking-tight text-lg">Recent Activity</h3>
-            <button className="text-[#8B8F98] text-sm hover:text-white transition-colors">View All</button>
+          <div className="flex justify-between items-start mb-6">
+            <div className="text-slate-600 text-sm font-semibold">TrustScore</div>
+            <div className="bg-[#4a72ff]/10 text-[#4a72ff] text-[11px] font-bold px-2 py-1 rounded-md">
+              Excellent
+            </div>
           </div>
-          <div className="divide-y divide-white/5">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors group cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                      {tx.type === 'Deposit' ? <path d="M12 19V5M5 12l7-7 7 7"/> : <path d="M5 12h14M12 5l7 7-7 7"/>}
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-white font-medium text-sm mb-0.5">{tx.to}</div>
-                    <div className="text-[#8B8F98] text-xs">{tx.type} • {tx.time}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`font-bold text-sm mb-0.5 ${tx.amount.startsWith('+') ? 'text-[#35E58A]' : 'text-white'}`}>
-                    {tx.amount}
-                  </div>
-                  <div className="text-[#8B8F98] text-xs flex items-center gap-1 justify-end">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#2161E8]"></div>
-                    {tx.status}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div>
+            <div className="text-slate-800 text-[2.5rem] font-bold tracking-tight mb-1 leading-none">740</div>
+            <div className="text-slate-500 text-xs font-medium">+12 points this month</div>
           </div>
         </motion.div>
 
-        {/* Quick Transfer */}
+        {/* API Requests / Table Occupancy */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="bg-[#111114] rounded-[24px] border border-white/5 p-8 flex flex-col"
+          className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-7 shadow-sm flex flex-col justify-between"
         >
-          <h3 className="text-white font-bold tracking-tight text-lg mb-6">Quick Send</h3>
-          
-          <div className="flex-1 space-y-4">
-            <div>
-              <label className="text-[#8B8F98] text-xs font-bold tracking-widest uppercase mb-2 block">Recipient</label>
-              <input 
-                type="text" 
-                placeholder="@username or 0x..." 
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
-              />
-            </div>
-            
-            <div>
-              <label className="text-[#8B8F98] text-xs font-bold tracking-widest uppercase mb-2 block">Amount (USD)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-bold">$</span>
-                <input 
-                  type="number" 
-                  placeholder="0.00" 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-[#2161E8] focus:bg-white/10 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#2161E8]/10 border border-[#2161E8]/20 flex items-center justify-between">
-              <span className="text-[#2161E8] text-xs font-bold tracking-widest uppercase">Est. Settlement</span>
-              <span className="text-[#2161E8] text-sm font-bold">2.1s</span>
+          <div className="flex justify-between items-start mb-6">
+            <div className="text-slate-600 text-sm font-semibold">Global Transfers</div>
+            <div className="bg-orange-100 text-orange-600 text-[11px] font-bold px-2 py-1 rounded-md">
+              Active
             </div>
           </div>
+          <div>
+            <div className="text-slate-800 text-[2.5rem] font-bold tracking-tight mb-3 leading-none">12</div>
+            <div className="text-slate-500 text-xs font-medium">4 countries this month</div>
+          </div>
+        </motion.div>
+      </div>
 
-          <button className="w-full bg-[#2161E8] text-white font-bold text-base rounded-xl px-4 py-3.5 hover:bg-[#1a4bba] transition-colors mt-6 flex items-center justify-center gap-2">
-            Send via L2
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
+      {/* Bottom Grid: Recent Activity & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        
+        {/* Recent Activity Table (Live Orders equivalent) */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          className="lg:col-span-2 flex flex-col"
+        >
+          <div className="flex justify-between items-center mb-4 px-2">
+            <h3 className="text-slate-800 font-bold text-[1.1rem]">Recent Activity</h3>
+            <button className="bg-black/5 hover:bg-black/10 text-slate-600 text-xs font-bold px-4 py-1.5 rounded-full transition-colors flex items-center gap-1">
+              Filter
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 overflow-hidden shadow-sm flex-1 p-2">
+            
+            <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="col-span-2">TYPE</div>
+              <div className="col-span-4">TRANSACTION</div>
+              <div className="col-span-2">ROUTE</div>
+              <div className="col-span-2">TIME</div>
+              <div className="col-span-2 text-right">STATUS</div>
+            </div>
+
+            <div className="divide-y divide-black/5">
+              {transactions.map((tx, i) => (
+                <div key={tx.id} className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer rounded-2xl mx-1 my-1">
+                  <div className="col-span-2 text-xs font-bold text-slate-700">
+                    {tx.type}
+                  </div>
+                  <div className="col-span-4">
+                    <div className="text-slate-800 font-bold text-xs mb-0.5">{tx.to}</div>
+                  </div>
+                  <div className="col-span-2 text-xs text-slate-500 font-medium">
+                    {tx.route}
+                  </div>
+                  <div className="col-span-2 text-xs text-slate-500 font-medium">
+                    {tx.time}
+                  </div>
+                  <div className="col-span-2 flex justify-end">
+                    {tx.status === 'Completed' ? (
+                      <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full">Completed</span>
+                    ) : (
+                      <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">Pending</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Actions Sidebar */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
+          className="flex flex-col"
+        >
+          <h3 className="text-slate-800 font-bold text-[1.1rem] mb-4 px-2">Quick Actions</h3>
+          
+          <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-2 shadow-sm flex-1 space-y-1">
+            
+            <button className="w-full flex items-center justify-between p-4 hover:bg-white/60 rounded-[20px] transition-colors text-left group">
+              <div>
+                <div className="text-sm font-bold text-slate-800 mb-0.5">Send Money</div>
+                <div className="text-xs text-slate-500 font-medium">Transfer money globally</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-800 transition-colors">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+
+            <button className="w-full flex items-center justify-between p-4 hover:bg-white/60 rounded-[20px] transition-colors text-left group">
+              <div>
+                <div className="text-sm font-bold text-slate-800 mb-0.5">TrustScore</div>
+                <div className="text-xs text-slate-500 font-medium">View your financial trust profile</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-800 transition-colors">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+
+            <button className="w-full flex items-center justify-between p-4 hover:bg-white/60 rounded-[20px] transition-colors text-left group">
+              <div>
+                <div className="text-sm font-bold text-slate-800 mb-0.5">Offline Vault</div>
+                <div className="text-xs text-slate-500 font-medium">Sign a transaction without internet</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-800 transition-colors">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+
+            <button className="w-full flex items-center justify-between p-4 hover:bg-white/60 rounded-[20px] transition-colors text-left group">
+              <div>
+                <div className="text-sm font-bold text-slate-800 mb-0.5">Transaction History</div>
+                <div className="text-xs text-slate-500 font-medium">View past transfers</div>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-slate-800 transition-colors">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+            
+          </div>
         </motion.div>
 
       </div>
