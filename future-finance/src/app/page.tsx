@@ -42,14 +42,10 @@ export default function Home() {
       <section className="relative w-full bg-[#0F1012] rounded-b-[48px] lg:rounded-b-[60px] overflow-hidden flex flex-col min-h-screen pb-16 lg:pb-20">
         
         {/* NAV INSIDE HERO */}
-        <nav className="w-full px-8 py-8 flex items-center justify-between relative z-50">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <img src="/logo.png" alt="Ziro Logo" className="h-16 md:h-20 w-auto object-contain brightness-0 invert" />
-          </Link>
+        <nav className="w-full px-8 pt-6 pb-2 flex items-center justify-between relative z-50">
           
-          {/* Center Links */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Left Links */}
+          <div className="hidden md:flex items-center gap-8 md:flex-1">
             {["Encryption", "Features", "Security"].map((item) => (
               <Link key={item} href={`#${item.toLowerCase()}`} className="text-[#8B8F98] hover:text-white transition-colors text-sm font-medium">
                 {item}
@@ -57,8 +53,13 @@ export default function Home() {
             ))}
           </div>
 
+          {/* Logo - use scale to enlarge visually without inflating the nav height */}
+          <Link href="/" className="flex items-center md:justify-center">
+            <img src="/logo.png" alt="Ziro Logo" className="h-10 md:h-12 w-auto object-contain brightness-0 invert scale-[2.5] md:scale-[3] origin-center" />
+          </Link>
+
           {/* Right Actions */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center justify-end gap-6 md:flex-1">
             <Link href="/login" className="text-[#8B8F98] hover:text-white transition-colors text-sm font-medium hidden sm:block">
               Log in
             </Link>
