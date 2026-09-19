@@ -96,14 +96,28 @@ class PaymentExecutionService:
             payment.state = PaymentState.TRANSACTION_CREATED
             payment.log_audit("Preparing blockchain transaction.")
             
+        # MOCK FOR DEMO: If recipient is a Ziro Tag, ensure it is a valid hex address for blockchain adapters
+        actual_recipient = payment.recipient_address
+        if actual_recipient.startswith("@"):
+            import hashlib
+            mock_hash = hashlib.sha256(actual_recipient.encode()).hexdigest()[:40]
+            if payment.chain == "stellar":
+                actual_recipient = f"G{mock_hash.upper().ljust(55, '0')}"
+            else:
+                actual_recipient = f"0x{mock_hash}"
+                
+        actual_sender = payment.sender_address
+        if not actual_sender or len(actual_sender) < 10 or actual_sender.startswith("@"):
+            actual_sender = "0x1234567890abcdef1234567890abcdef12345678" if payment.chain != "stellar" else "GABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdefghijklmnopqr"
+
         try:
             adapter = self.blockchain_service.get_adapter(payment.chain)
             
             # Step 1: Create
             tx = adapter.create_transaction(
                 payment_id=payment.payment_id,
-                sender=payment.sender_address,
-                recipient=payment.recipient_address,
+                sender=actual_sender,
+                recipient=actual_recipient,
                 amount=payment.amount,
                 asset=payment.currency
             )
