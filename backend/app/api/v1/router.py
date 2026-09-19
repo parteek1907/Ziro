@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, blockchain, users, profile, wallets, payments, risk, security, offline, trustscore, credentials, relay, mentor, fraud
+from app.api.v1.endpoints import health, blockchain, users, profile, wallets, payments, risk, security, offline, trustscore, credentials, relay, mentor, fraud, consultant
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
@@ -16,3 +16,4 @@ api_router.include_router(credentials.router, prefix="/credentials", tags=["cred
 api_router.include_router(relay.router, prefix="/relay", tags=["relay"])
 api_router.include_router(mentor.router, prefix="/mentor", tags=["mentor"])
 api_router.include_router(fraud.router, prefix="/fraud", tags=["fraud"])
+api_router.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
