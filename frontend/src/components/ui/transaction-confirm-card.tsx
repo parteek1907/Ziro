@@ -138,7 +138,7 @@ export function TransactionConfirmCard({
   const innerDotsCount = Math.round((2 * Math.PI * innerRadius) / 46);
 
   const generateDots = (count: number, radius: number, cX: number, cY: number) => {
-    const dots = [];
+    const dots: {x: number, y: number}[] = [];
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * 2 * Math.PI - Math.PI / 2; // start from top
       const x = Math.round((cX + radius * Math.cos(angle)) * 100) / 100;

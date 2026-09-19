@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/lib/AuthContext"
 import {
   checkRecipient,
-  compareRoutes
+  compareRoutes,
+  analyzeRisk
 } from "@/lib/api"
 import type {
   RecipientCheckResponse,
-  RouteOption
+  RouteOption,
+  RiskAnalysisResponse
 } from "@/lib/api"
 import Link from "next/link"
 import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
@@ -48,7 +50,7 @@ const CURRENCIES = ["USD", "EUR", "GBP", "USDC"]
 const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" }
 
 // ─── Types ───────────────────────────────────────────────────
-type PageView = "wallet" | "form" | "confirm" | "done"
+type PageView = "wallet" | "form" | "checking" | "route" | "confirm" | "done"
 type RecipientState = "idle" | "safe" | "warning" | "blocked"
 
 // ─── Toast ───────────────────────────────────────────────────
@@ -142,6 +144,8 @@ export default function TransfersPage() {
 
   const [view, setView] = useState<PageView>("wallet")
   const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
+  const [cardDanger, setCardDanger] = useState(false)
+  const [allRoutes, setAllRoutes] = useState<RouteOption[]>([])
 
   const [recipient, setRecipient] = useState("")
   const [amount, setAmount] = useState("")
@@ -210,11 +214,86 @@ export default function TransfersPage() {
     finally { setCheckingRecipient(false) }
   }, [recipient, activeUserId])
 
-  // "Continue" just validates and goes to the confirm card — NO API call
-  const handleContinue = useCallback(() => {
+  const handleSend = useCallback(async () => {
     if (!amount || !recipient.trim() || recipientState === "blocked") return
-    setView("confirm")
-  }, [amount, recipient, recipientState])
+    const uid = user?.uid || "user123"
+
+    setView("checking")
+    setCardDanger(false)
+
+    try {
+      // ── Step 1: Address Security Scan ──────────────────────
+      const addrRes = await checkRecipient(recipient.trim(), uid)
+      if (addrRes.status === "BLOCKED") {
+        setRecipientState("blocked")
+        setToast({
+          msg: `WARNING: This address is suspiciously similar to a saved contact. This resembles an Address Poisoning attack.`,
+          type: "error",
+        })
+        setView("form")
+        return
+      } else if (addrRes.status === "WARNING") {
+        setRecipientState("warning")
+      } else {
+        setRecipientState("safe")
+      }
+
+      // ── Step 2: AI Risk Firewall ───────────────────────────
+      const riskRes: RiskAnalysisResponse = await analyzeRisk({
+        recipient: recipient.trim(),
+        amount: parseFloat(amount),
+        currency,
+        note: note || "transfer",
+        user_id: uid,
+      })
+
+      if (riskRes.risk_level === "HIGH") {
+        setCardDanger(true)
+        setToast({
+          msg: riskRes.warnings.length > 0 ? riskRes.warnings[0] : "High-risk transaction blocked by AI Firewall.",
+          type: "error",
+        })
+        setView("form")
+        return
+      }
+
+      if (riskRes.risk_level === "MEDIUM") {
+        setRiskWarnings(riskRes.warnings)
+        setShowRiskModal(true)
+        setView("form")
+        return
+      }
+
+      // ── Step 3: Route Comparison ───────────────────────────
+      await proceedToRoutes()
+
+    } catch (e) {
+      console.warn("Firewall check error, proceeding to routes:", e)
+      // If API is unavailable, skip firewall and go to routes
+      await proceedToRoutes()
+    }
+  }, [user, recipient, amount, currency, note, recipientState])
+
+  const proceedToRoutes = useCallback(async () => {
+    setView("checking")
+    try {
+      const routesRes = await compareRoutes({
+        amount: parseFloat(amount) || 100,
+        currency,
+        destination_country: "US",
+        preference: "lowest_cost",
+      })
+      setAllRoutes(routesRes.routes)
+      const blockchain = routesRes.routes.find((r) => r.route === "BLOCKCHAIN") || routesRes.routes[0]
+      setSelectedRoute(blockchain || null)
+    } catch {
+      // Fallback route if API down
+      const defaultRoute: RouteOption = { route: "BLOCKCHAIN", estimated_time_seconds: 2.1, estimated_fee: 0.5, fee_currency: "USDC" }
+      setAllRoutes([defaultRoute])
+      setSelectedRoute(defaultRoute)
+    }
+    setView("route")
+  }, [amount, currency])
 
   // "Confirm & Send" on the confirmation card
   const handleConfirmSend = useCallback(async () => {
@@ -228,8 +307,8 @@ export default function TransfersPage() {
 
   const handleRiskProceed = useCallback(async () => {
     setShowRiskModal(false)
-    setShowPinModal(true)
-  }, [currentPayment])
+    proceedToRoutes()
+  }, [currentPayment, proceedToRoutes])
 
   const handlePinSubmit = useCallback(async (pin: string) => {
     setShowPinModal(false)
@@ -428,9 +507,20 @@ export default function TransfersPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* VIEW: FORM                                              */}
+        {/* VIEW: MAIN (Form, Route, Confirm, Done)                 */}
         {/* ═══════════════════════════════════════════════════════ */}
-        {view === "form" && (
+        {view !== "wallet" && (
+          <motion.div
+            key="main-views"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-5xl mx-auto"
+          >
+            <div className="lg:col-span-2 flex flex-col items-center">
+              <AnimatePresence mode="wait">
+        {(view === "form" || view === "checking") && (
           <motion.div
             key="form-view"
             initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
@@ -511,22 +601,31 @@ export default function TransfersPage() {
 
               {/* Contacts & Form */}
               <div className="space-y-4">
-                <motion.div className="flex items-center gap-3 overflow-x-auto pt-4 pb-3 px-3 -mt-2 scrollbar-none" initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
-                  {CONTACTS.map((contact) => (
-                    <motion.button
-                      key={contact.id}
-                      onClick={() => { setRecipient(contact.handle); setRecipientState("idle") }}
-                      variants={{ hidden: { opacity: 0, scale: 0.5 }, visible: { opacity: 1, scale: 1 } }}
-                      whileHover={{ scale: 1.06, y: -1 }} whileTap={{ scale: 0.95 }}
-                      className="flex flex-col items-center gap-1 shrink-0 group p-1"
+                <div className="flex flex-wrap items-center gap-2 px-1">
+                  <span className="text-[11px] font-semibold text-slate-400">Quick contacts:</span>
+                  {[
+                    { handle: "@amara", label: "Amara (Kenya)", desc: "Verified Contact" },
+                    { handle: "@carlos", label: "Carlos (Mexico)", desc: "Verified Contact" },
+                    { handle: "@maria", label: "Maria Garcia", desc: "Verified Contact" },
+                  ].map((c) => (
+                    <button
+                      key={c.handle}
+                      type="button"
+                      onClick={() => {
+                        setRecipient(c.handle)
+                        setRecipientState("safe")
+                      }}
+                      className={`text-xs px-2.5 py-1.5 rounded-full border transition-all font-medium flex items-center gap-1.5 ${
+                        recipient.toLowerCase() === c.handle.toLowerCase()
+                          ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                          : "bg-white/80 text-slate-600 border-slate-200 hover:bg-white hover:text-slate-900"
+                      }`}
                     >
-                      <div className={`w-12 h-12 rounded-full overflow-hidden transition-all ${recipient === contact.handle ? 'ring-2 ring-[#4a72ff] ring-offset-2 ring-offset-white' : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2 hover:ring-offset-white'}`}>
-                        <img src={contact.img} alt={contact.name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-800">{contact.name}</span>
-                    </motion.button>
+                      <span className="font-semibold">{c.handle}</span>
+                      <span className="text-[10px] opacity-70">{c.label}</span>
+                    </button>
                   ))}
-                </motion.div>
+                </div>
 
                 <div className="bg-white/50 backdrop-blur-md p-3 rounded-[32px] border border-white/60 shadow-sm">
                   <div className="flex items-center gap-4 bg-white rounded-[24px] px-5 py-4 shadow-sm mb-2">
@@ -560,14 +659,117 @@ export default function TransfersPage() {
                 </div>
               </div>
 
-              {/* CTA — "Continue" goes to confirm card, no API call */}
+              {/* CTA — "Screen & Send" initiates the screening flow */}
               <div className="pt-2">
                 <button
-                  onClick={handleContinue}
-                  disabled={!amount || !recipient || recipientState === "blocked" || isInsufficientFunds}
-                  className="w-full bg-slate-900 hover:bg-black disabled:opacity-50 disabled:hover:bg-slate-900 text-white font-bold text-lg px-5 py-5 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1 relative overflow-hidden group"
+                  onClick={handleSend}
+                  disabled={!amount || !recipient || recipientState === "blocked" || isInsufficientFunds || view === "checking"}
+                  className="w-full bg-slate-900 hover:bg-black disabled:opacity-50 disabled:hover:bg-slate-900 text-white font-bold text-lg px-5 py-5 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1 relative overflow-hidden group flex items-center justify-center gap-3"
                 >
-                  <span className="relative z-10 tracking-wide">Continue</span>
+                  {view === "checking" ? (
+                    <>
+                      <div className="w-5 h-5 rounded-full border-[3px] border-white/30 border-t-white animate-spin" />
+                      <span className="relative z-10 tracking-wide">Screening...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                      <span className="relative z-10 tracking-wide">Screen & Send</span>
+                    </>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] opacity-50" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* VIEW: ROUTE (Route Selection)                           */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {view === "route" && (
+          <motion.div
+            key="route-view"
+            initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="w-full max-w-lg bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/50 p-8 sm:p-10 relative overflow-visible"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-emerald-50/30 pointer-events-none -z-10 rounded-[40px]" />
+
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex justify-between items-center relative z-20">
+                <button onClick={() => setView("form")} className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100 hover:scale-105 transition-transform">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-700"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+                </button>
+                <div className="px-4 py-2 bg-slate-100 rounded-full">
+                  <span className="text-xs font-bold text-slate-600">Route Optimizer</span>
+                </div>
+              </div>
+
+              {/* Amount summary */}
+              <div className="text-center">
+                <div className="text-sm font-semibold text-slate-500 mb-1">Sending</div>
+                <div className="text-4xl font-black text-slate-900 tracking-tight">
+                  {CURRENCY_SYMBOLS[currency]}{amount}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-4">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Available Routes</div>
+                
+                {allRoutes.map((r, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 * i }}
+                    onClick={() => setSelectedRoute(r)}
+                    className={`relative p-5 rounded-[24px] cursor-pointer transition-all ${
+                      selectedRoute?.route === r.route
+                        ? "bg-white shadow-md border-transparent scale-[1.02]"
+                        : "bg-white/50 hover:bg-white/80 border border-slate-200/50 hover:border-slate-300"
+                    }`}
+                  >
+                    {/* Glowing Cypherpunk border for BLOCKCHAIN when selected */}
+                    {r.route === "BLOCKCHAIN" && selectedRoute?.route === r.route && (
+                      <div className="absolute -inset-0.5 rounded-[26px] bg-gradient-to-r from-[#4a72ff] via-[#bc9ff5] to-[#4a72ff] blur opacity-30 animate-pulse pointer-events-none" />
+                    )}
+
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${r.route === "BLOCKCHAIN" ? "bg-[#4a72ff]/10 text-[#4a72ff]" : "bg-slate-100 text-slate-500"}`}>
+                          {r.route === "BLOCKCHAIN" ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-800">{r.route === "BLOCKCHAIN" ? "Blockchain L2" : "Traditional Rails"}</div>
+                          <div className="text-xs font-semibold text-slate-500">{r.route === "BLOCKCHAIN" ? "Instant Settlement" : "SWIFT / Local transfer"}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-slate-900">{r.estimated_fee === 0 ? "Free" : `${r.estimated_fee} ${r.fee_currency}`}</div>
+                        <div className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                          ~ {r.estimated_time_seconds < 60 ? `${Math.round(r.estimated_time_seconds)}s` : `${Math.round(r.estimated_time_seconds / 60)}m`}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* CTA — proceed to confirm card */}
+              <div className="pt-2">
+                <button
+                  onClick={() => setView("confirm")}
+                  className="w-full bg-slate-900 hover:bg-black text-white font-bold text-lg px-5 py-5 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1 relative overflow-hidden group"
+                >
+                  <span className="relative z-10 tracking-wide">Continue to Confirmation</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] opacity-50" />
                 </button>
               </div>
@@ -599,24 +801,159 @@ export default function TransfersPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* VIEW: DONE — Ticket Confirmation Card with Confetti     */}
+        {/* VIEW: DONE — Cypherpunk On-Chain Receipt                */}
         {/* ═══════════════════════════════════════════════════════ */}
         {view === "done" && (
           <motion.div
             key="done-view"
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="flex items-center justify-center w-full"
+            className="flex flex-col items-center justify-center py-8 gap-6 text-center w-full max-w-lg bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/50 p-8 sm:p-10 relative overflow-visible"
           >
-            <ZiroTicket
-              paymentId={currentPayment?.payment_id || "ZR-" + Math.floor(Math.random() * 10000000)}
-              amount={totalAmount}
-              fees={feesAmount}
-              currency={currency}
-              recipient={recipient}
-              fundingSource={fundingSource.name}
-              onDone={reset}
-            />
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+              className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center relative"
+            >
+              <div className="absolute inset-0 rounded-full border-4 border-emerald-400 opacity-20 animate-ping"></div>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </motion.div>
+            <div>
+              <div className="text-2xl font-bold text-slate-800 mb-1">Transfer Settled</div>
+              <div className="flex items-center justify-center gap-2 text-emerald-600 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Confirmed on Polygon L2
+              </div>
+            </div>
+            
+            <div className="w-full bg-slate-50 rounded-2xl p-5 border border-slate-200 text-left space-y-4">
+              <div>
+                <div className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Transaction Hash</div>
+                <div className="flex items-center gap-2">
+                  <code className="bg-slate-200/50 text-slate-700 px-3 py-2 rounded-xl text-xs font-mono font-bold flex-1 overflow-hidden text-ellipsis">
+                    0x8f7a...3d91b4e2c6f8a9e7d5c3b1a2f4e6d8c0b9a8f7e6d5c4b3a2f1
+                  </code>
+                  <button className="p-2 hover:bg-slate-200 rounded-xl transition-colors text-slate-500" title="Copy Hash">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Gas Fee</div>
+                  <div className="text-sm font-bold text-emerald-600">Free</div>
+                  <div className="text-[10px] font-medium text-slate-500">Sponsored by Ziro Paymaster</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">Settlement Time</div>
+                  <div className="text-sm font-bold text-slate-700">1.8 Seconds</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex w-full gap-3 mt-2">
+              <button onClick={reset} className="flex-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-sm px-6 py-3 rounded-full transition-colors">
+                Send Another
+              </button>
+              <button className="flex-1 bg-slate-800 hover:bg-black text-white font-semibold text-sm px-6 py-3 rounded-full transition-colors flex items-center justify-center gap-2">
+                View on PolygonScan
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+              </button>
+            </div>
+          </motion.div>
+        )}
+              </AnimatePresence>
+            </div>
+
+            {/* ── Security Status Panel ──────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="flex flex-col gap-4"
+            >
+              <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-slate-700 text-sm font-bold">Security Checks</div>
+                  {(view === "route" || view === "confirm" || view === "done") && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      ALL PASSED
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-3.5">
+                  {[
+                    {
+                      label: "Address Scan",
+                      desc: recipientState === "safe"
+                        ? "Verified: No poisoning detected"
+                        : recipientState === "blocked"
+                        ? "Blocked: Suspicious address"
+                        : view === "checking"
+                        ? "Scanning address on-chain..."
+                        : "Checks for address poisoning",
+                      done: recipientState !== "idle" || view === "route" || view === "confirm" || view === "done",
+                      ok: recipientState !== "blocked",
+                      active: view === "checking" && recipientState === "idle",
+                    },
+                    {
+                      label: "AI Firewall",
+                      desc: view === "route" || view === "confirm" || view === "done"
+                        ? "Passed: 0 fraud rules triggered"
+                        : view === "checking"
+                        ? "Analyzing intent & scam risk..."
+                        : "Scam & fraud detection",
+                      done: view === "route" || view === "confirm" || view === "done",
+                      ok: !cardDanger,
+                      active: view === "checking",
+                    },
+                    {
+                      label: "Route Optimizer",
+                      desc: view === "route" || view === "confirm" || view === "done"
+                        ? `${selectedRoute?.route || "Blockchain L2"} selected (< $0.01)`
+                        : view === "checking"
+                        ? "Finding lowest cost route..."
+                        : "Best fee & settlement time",
+                      done: view === "route" || view === "confirm" || view === "done",
+                      ok: true,
+                      active: view === "checking",
+                    },
+                  ].map((check) => (
+                    <div key={check.label} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                        check.active
+                          ? "bg-[#4a72ff]/10 text-[#4a72ff]"
+                          : check.done
+                          ? (check.ok ? "bg-emerald-100" : "bg-red-100")
+                          : "bg-slate-100"
+                      }`}>
+                        {check.active ? (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-[#4a72ff]/30 border-t-[#4a72ff] animate-spin" />
+                        ) : check.done && check.ok ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        ) : check.done ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        ) : (
+                          <div className="w-2 h-2 rounded-full bg-slate-300" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">{check.label}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">{check.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -49,44 +49,32 @@ TOPIC_EXPLANATIONS = {
 async def chat_with_inclusion_mentor(req: MentorMessageRequest):
     """
     Multilingual financial mentor that translates high-finance concepts into accessible everyday terms.
-    If GROQ_API_KEY is configured in the environment, it uses Llama 3.1; otherwise it uses the built-in
+    If GEMINI_API_KEY is configured, it uses Gemini 1.5 Flash; otherwise it uses the built-in
     accessible knowledge base.
     """
-    groq_api_key = os.getenv("GROQ_API_KEY")
+    import google.generativeai as genai
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
     query_lower = req.message.lower()
 
-    # Optional Groq Llama 3.1 LLM integration if key is present
-    if groq_api_key:
+    # Optional Gemini LLM integration if key is present
+    if gemini_api_key:
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                prompt = (
-                    "You are a compassionate, ultra-clear financial inclusion mentor for unbanked borrowers. "
-                    "Explain the concept in simple words. Avoid technical financial jargon. "
-                    f"Language: {req.language}. "
-                    f"User message: {req.message}"
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            prompt = (
+                "You are a compassionate, ultra-clear financial inclusion mentor for unbanked borrowers. "
+                "Explain the concept in simple words. Avoid technical financial jargon. "
+                f"Language: {req.language}. "
+                f"User message: {req.message}"
+            )
+            response = model.generate_content(prompt)
+            if response.text:
+                return MentorMessageResponse(
+                    reply=response.text.strip(),
+                    simplified_analogy="AI-generated plain-language breakdown.",
+                    actionable_tip="You can verify your credit qualification anytime on your dashboard.",
+                    language=req.language,
                 )
-                res = await client.post(
-                    "https://api.groq.com/openai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {groq_api_key}"},
-                    json={
-                        "model": "llama-3.1-8b-instant",
-                        "messages": [
-                            {"role": "system", "content": prompt},
-                            {"role": "user", "content": req.message}
-                        ],
-                        "temperature": 0.3,
-                        "max_tokens": 300,
-                    }
-                )
-                if res.status_code == 200:
-                    data = res.json()
-                    ai_text = data["choices"][0]["message"]["content"]
-                    return MentorMessageResponse(
-                        reply=ai_text,
-                        simplified_analogy="AI-generated plain-language breakdown.",
-                        actionable_tip="You can verify your credit qualification anytime on your dashboard.",
-                        language=req.language,
-                    )
         except Exception:
             pass  # Fall back to localized knowledge base seamlessly
 
