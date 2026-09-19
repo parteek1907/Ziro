@@ -20,10 +20,15 @@ class Settings(BaseSettings):
     FX_ALLOW_SIMULATED_FALLBACK: bool = True
     FX_MARGIN_BPS: int = 50
     
+    # ZiroStream Pricing Tiers & Legacy Comparison
+    TIER1_MAX_USD: Decimal = Decimal("50.00")
+    TIER2_FEE_BPS: int = 20  # 0.2%
+    LEGACY_FLAT_FEE_USD: Decimal = Decimal("8.50")
+    LEGACY_FX_SPREAD_BPS: int = 200  # 2.0%
+    
     # Fees & Settlement
-    PLATFORM_FEE_BPS: int = 0
-    PLATFORM_FEE_FIXED_USD: Decimal = Decimal("0.00")
-    NETWORK_FEE_USD: Decimal = Decimal("0.01")
+    PLATFORM_FEE_FIXED_USD: Decimal = Decimal("0.00") # Base platform fee
+    NETWORK_FEE_USD: Decimal = Decimal("0.001") # Hardcoded Paymaster gas
     SETTLEMENT_SECONDS_ESTIMATE: int = 5
 
     model_config = SettingsConfigDict(

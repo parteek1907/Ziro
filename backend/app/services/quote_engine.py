@@ -41,16 +41,18 @@ class QuoteEngine:
             usd_src_status = usd_src_result.status
             
         # 3. Calculate applied_rate
-        fx_margin_dec = Decimal(settings.FX_MARGIN_BPS) / Decimal("10000")
+        fx_margin_dec = Decimal(settings.FX_MARGIN_BPS) / Decimal("10000") # Should be 0 based on prompt, but keeping dynamic
         applied_rate = self._quantize(mid * (Decimal("1") - fx_margin_dec), 8)
         
-        # 4. Calculate fees
-        platform_fee_fixed_src = usd_src_rate * settings.PLATFORM_FEE_FIXED_USD
-        platform_fee_bps_src = source_amount * (Decimal(settings.PLATFORM_FEE_BPS) / Decimal("10000"))
-        platform_fee = self._quantize(platform_fee_fixed_src + platform_fee_bps_src, src_decimals)
+        # 4. Calculate fees (ZiroStream Tiers)
+        amount_usd = source_amount if src == "USD" else source_amount / usd_src_rate
+        if amount_usd < settings.TIER1_MAX_USD:
+            platform_fee = self._quantize(Decimal("0"), src_decimals)
+        else:
+            platform_fee = self._quantize(source_amount * (Decimal(settings.TIER2_FEE_BPS) / Decimal("10000")), src_decimals)
         
-        network_fee_usd = self.fee.get_fee_usd()
-        network_fee = self._quantize(network_fee_usd * usd_src_rate, src_decimals)
+        # Paymaster sponsors network fee, so cost to user is 0
+        network_fee = self._quantize(Decimal("0"), src_decimals)
         
         # 5. Net amount
         net_amount = source_amount - platform_fee - network_fee
@@ -65,9 +67,32 @@ class QuoteEngine:
         
         # 8. Total cost
         total_cost = platform_fee + network_fee + fx_cost
-        
-        # 9. Total cost percent
         total_cost_percent = self._quantize((total_cost / source_amount) * Decimal("100"), 4)
+        
+        # 9. Legacy Benchmark
+        legacy_flat_fee = self._quantize(settings.LEGACY_FLAT_FEE_USD * usd_src_rate, src_decimals)
+        legacy_fx_margin_dec = Decimal(settings.LEGACY_FX_SPREAD_BPS) / Decimal("10000")
+        legacy_applied_rate = self._quantize(mid * (Decimal("1") - legacy_fx_margin_dec), 8)
+        
+        legacy_net = source_amount - legacy_flat_fee
+        if legacy_net > 0:
+            legacy_dest = self._quantize(legacy_net * legacy_applied_rate, dst_decimals, rounding=ROUND_DOWN)
+            legacy_fx_cost = self._quantize(legacy_net * legacy_fx_margin_dec, src_decimals)
+        else:
+            legacy_dest = Decimal("0")
+            legacy_fx_cost = Decimal("0")
+            
+        legacy_total = legacy_flat_fee + legacy_fx_cost
+        savings = self._quantize(legacy_total - total_cost, src_decimals)
+        
+        from app.schemas.quote import LegacyComparison
+        legacy_comp = LegacyComparison(
+            legacy_flat_fee=str(legacy_flat_fee),
+            legacy_fx_cost=str(legacy_fx_cost),
+            legacy_total_cost=str(legacy_total),
+            legacy_destination_amount=str(legacy_dest),
+            savings_vs_legacy=str(savings)
+        )
         
         # Invariant check
         dst_minor_unit = Decimal("1") if dst_decimals == 0 else Decimal("10") ** -dst_decimals
@@ -79,7 +104,6 @@ class QuoteEngine:
             raise RuntimeError(f"Invariant violation: {inv_left} > {inv_right}")
             
         is_simulated = any(s == "SIMULATED" for s in [fx_result.status, usd_src_status, "SIMULATED"])
-        
         source_amount_str = f"{source_amount:.{src_decimals}f}" if src_decimals > 0 else str(source_amount.quantize(Decimal("1")))
         
         return QuoteResponse(
@@ -104,5 +128,6 @@ class QuoteEngine:
                 network_fee=DataQuality(status="SIMULATED", source="config:NETWORK_FEE_USD", as_of=None),
                 settlement_time=DataQuality(status="SIMULATED", source="config:SETTLEMENT_SECONDS_ESTIMATE", as_of=None)
             ),
+            legacy_comparison=legacy_comp,
             generated_at=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         )

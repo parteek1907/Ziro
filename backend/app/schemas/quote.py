@@ -169,6 +169,13 @@ class QuoteDataQuality(BaseModel):
     network_fee: DataQuality
     settlement_time: DataQuality
 
+class LegacyComparison(BaseModel):
+    legacy_flat_fee: str
+    legacy_fx_cost: str
+    legacy_total_cost: str
+    legacy_destination_amount: str
+    savings_vs_legacy: str
+
 class QuoteResponse(BaseModel):
     source_amount: str
     source_currency: str
@@ -187,5 +194,6 @@ class QuoteResponse(BaseModel):
     route: Literal["BLOCKCHAIN"]
     is_simulated: bool
     data_quality: QuoteDataQuality
+    legacy_comparison: LegacyComparison
     generated_at: str
     disclaimer: str = "Estimate only. Not a guaranteed rate or price."

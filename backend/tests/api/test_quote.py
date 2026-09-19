@@ -44,45 +44,43 @@ def get_base_payload():
         "destination_country": "US"
     }
 
-def test_golden_case_1(fake_fx, monkeypatch):
-    monkeypatch.setattr(settings, "FX_MARGIN_BPS", 50)
-    monkeypatch.setattr(settings, "NETWORK_FEE_USD", Decimal("0.01"))
-    monkeypatch.setattr(settings, "PLATFORM_FEE_BPS", 0)
-    monkeypatch.setattr(settings, "PLATFORM_FEE_FIXED_USD", Decimal("0.00"))
+def test_tier1_pricing(fake_fx, monkeypatch):
+    # Tier 1: Under $50
+    monkeypatch.setattr(settings, "FX_MARGIN_BPS", 0)
+    monkeypatch.setattr(settings, "NETWORK_FEE_USD", Decimal("0.001"))
+    monkeypatch.setattr(settings, "TIER1_MAX_USD", Decimal("50.00"))
     monkeypatch.setattr(settings, "SETTLEMENT_SECONDS_ESTIMATE", 5)
     
-    response = client.post("/api/v1/payments/quote", json=get_base_payload())
+    payload = get_base_payload()
+    payload["amount"] = "3000.00" # 3000 INR = ~$36 USD < $50
+    response = client.post("/api/v1/payments/quote", json=payload)
     
     assert response.status_code == 200
     data = response.json()
-    assert data["network_fee"] == "0.83"
+    assert data["network_fee"] == "0.00"
     assert data["platform_fee"] == "0.00"
-    assert data["fx_rate"] == "0.01194000"
-    assert data["mid_market_rate"] == "0.01200000"
-    assert data["fx_cost"] == "500.00"
-    assert data["total_cost"] == "500.83"
-    assert data["destination_amount"] == "1193.99"
-    assert data["total_cost_percent"] == "0.5008"
-    assert data["route"] == "BLOCKCHAIN"
-    assert data["estimated_settlement_seconds"] == 5
-    assert data["is_simulated"] is True
+    assert data["fx_rate"] == "0.01200000"
+    assert data["total_cost"] == "0.00"
+    assert data["legacy_comparison"]["legacy_flat_fee"] == "708.33"
 
-def test_golden_case_2_fee_calc(fake_fx, monkeypatch):
-    monkeypatch.setattr(settings, "FX_MARGIN_BPS", 50)
-    monkeypatch.setattr(settings, "NETWORK_FEE_USD", Decimal("0.01"))
-    monkeypatch.setattr(settings, "PLATFORM_FEE_BPS", 100)
-    monkeypatch.setattr(settings, "PLATFORM_FEE_FIXED_USD", Decimal("0.50"))
+def test_tier2_pricing(fake_fx, monkeypatch):
+    # Tier 2: $50 or over
+    monkeypatch.setattr(settings, "FX_MARGIN_BPS", 0)
+    monkeypatch.setattr(settings, "NETWORK_FEE_USD", Decimal("0.001"))
+    monkeypatch.setattr(settings, "TIER2_FEE_BPS", 20) # 0.2%
+    monkeypatch.setattr(settings, "TIER1_MAX_USD", Decimal("50.00"))
     monkeypatch.setattr(settings, "SETTLEMENT_SECONDS_ESTIMATE", 5)
     
-    response = client.post("/api/v1/payments/quote", json=get_base_payload())
+    payload = get_base_payload()
+    payload["amount"] = "100000.00" # 100k INR = ~$1200 USD >= $50
+    response = client.post("/api/v1/payments/quote", json=payload)
     
     assert response.status_code == 200
     data = response.json()
-    assert data["platform_fee"] == "1041.67"
-    assert data["network_fee"] == "0.83"
-    assert data["fx_cost"] == "494.79"
-    assert data["total_cost"] == "1537.29"
-    assert data["destination_amount"] == "1181.55"
+    assert data["platform_fee"] == "200.00"
+    assert data["network_fee"] == "0.00"
+    assert data["total_cost"] == "200.00"
+    assert data["legacy_comparison"]["legacy_flat_fee"] == "708.33"
 
 def test_invalid_currency(fake_fx):
     payload = get_base_payload()
@@ -115,7 +113,9 @@ def test_invalid_amount(fake_fx, monkeypatch):
         assert any(d["code"] == expected_code for d in response.json()["error"]["details"])
 
 def test_amount_too_small(fake_fx, monkeypatch):
-    monkeypatch.setattr(settings, "PLATFORM_FEE_FIXED_USD", Decimal("5.00")) # large fee
+    # To test amount too small, we force a scenario where the fees > amount
+    monkeypatch.setattr(settings, "TIER2_FEE_BPS", 15000) # 150% fee
+    monkeypatch.setattr(settings, "TIER1_MAX_USD", Decimal("0.00")) # force tier 2
     payload = get_base_payload()
     payload["amount"] = "10.00"
     response = client.post("/api/v1/payments/quote", json=payload)

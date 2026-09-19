@@ -65,3 +65,26 @@ async def calculate_remittance_route(req: RemittanceRouteRequest):
         simulated_tx_hash=simulated_hash,
         timestamp=datetime.utcnow().isoformat() + "Z"
     )
+
+from pydantic import BaseModel
+
+class OfframpWebhookPayload(BaseModel):
+    transaction_hash: str
+    recipient_phone: str
+    amount_local: str
+    currency: str
+    status: str
+
+@router.post("/webhook/offramp")
+async def handle_offramp_webhook(payload: OfframpWebhookPayload):
+    """
+    Simulates the webhook receiver for instant local liquidity settlement (e.g. M-Pesa).
+    When the smart contract fires the transfer event, the off-ramp partner triggers this.
+    """
+    # In production, we'd verify the webhook signature and update the DB.
+    # We log the instant settlement.
+    return {
+        "status": "success",
+        "message": f"Successfully settled {payload.amount_local} {payload.currency} to {payload.recipient_phone}",
+        "settled_at": datetime.utcnow().isoformat() + "Z"
+    }
