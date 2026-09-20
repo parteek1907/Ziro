@@ -17,9 +17,9 @@ export type Transaction = {
 }
 
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: "tx-1",  type: "Transfer",   to: "Amara",           route: "USD → KES", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
-  { id: "tx-2",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$1,200.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7838" },
-  { id: "tx-3",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$4,500.00",  status: "Completed", time: "3 days ago",    ref: "ZR-7837" },
+  { id: "tx-1",  type: "Transfer",   to: "Amara",           route: "USD", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
+  { id: "tx-2",  type: "Transfer",   to: "Darsh",           route: "USD", amount: "-$1,200.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7838" },
+  { id: "tx-3",  type: "Transfer",   to: "Darsh",           route: "USD", amount: "-$4,500.00",  status: "Completed", time: "3 days ago",    ref: "ZR-7837" },
 ]
 
 interface FinanceContextType {

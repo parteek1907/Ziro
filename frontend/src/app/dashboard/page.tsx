@@ -322,39 +322,40 @@ export default function DashboardOverview() {
 
           <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 overflow-hidden shadow-sm flex-1 p-2">
             <div className="overflow-x-auto">
-              <div className="min-w-[650px]">
-                <div className="grid grid-cols-[1.5fr_2fr_1.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-4 py-3 border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  <div>TYPE</div>
-                  <div>RECIPIENT</div>
-                  <div>ROUTE</div>
-                  <div>REF</div>
-                  <div>TIME</div>
-                  <div className="text-right">AMOUNT</div>
-                  <div className="text-right">STATUS</div>
-                </div>
-
-                <div className="divide-y divide-black/5">
+              <table className="w-full min-w-[650px] text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-3 font-bold">TYPE</th>
+                    <th className="px-4 py-3 font-bold">RECIPIENT</th>
+                    <th className="px-4 py-3 font-bold">ROUTE</th>
+                    <th className="px-4 py-3 font-bold">REF</th>
+                    <th className="px-4 py-3 font-bold">TIME</th>
+                    <th className="px-4 py-3 font-bold text-right">AMOUNT</th>
+                    <th className="px-4 py-3 font-bold text-right">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5">
                   {transactions.slice(0, 4).map((tx) => (
-                    <div key={tx.id} className="grid grid-cols-[1.5fr_2fr_1.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-4 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer rounded-2xl mx-1 my-1">
-                      <div className="text-xs font-bold text-slate-600 truncate">{tx.type}</div>
-                      <div className="text-xs font-bold text-slate-800 truncate">{tx.to}</div>
-                      <div className="text-xs text-slate-500 font-medium truncate">{tx.route}</div>
-                      <div className="text-xs text-slate-400 font-medium truncate">{tx.ref}</div>
-                      <div className="text-xs text-slate-500 font-medium whitespace-nowrap">{tx.time}</div>
-                      <div className={`text-xs font-bold text-right whitespace-nowrap ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</div>
-                      <div className="flex justify-end">
+                    <tr key={tx.id} className="hover:bg-white/40 transition-colors cursor-pointer group">
+                      <td className="px-4 py-4 text-xs font-bold text-slate-600 truncate">{tx.type}</td>
+                      <td className="px-4 py-4 text-xs font-bold text-slate-800 truncate">{tx.to}</td>
+                      <td className="px-4 py-4 text-xs text-slate-500 font-medium truncate">{tx.route}</td>
+                      <td className="px-4 py-4 text-xs text-slate-400 font-medium truncate">{tx.ref}</td>
+                      <td className="px-4 py-4 text-xs text-slate-500 font-medium whitespace-nowrap">{tx.time}</td>
+                      <td className={`px-4 py-4 text-xs font-bold text-right whitespace-nowrap ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</td>
+                      <td className="px-4 py-4 text-right">
                         {tx.status === "Completed" ? (
-                          <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Completed</span>
+                          <span className="inline-block bg-blue-100 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Completed</span>
                         ) : tx.status === "Pending" ? (
-                          <span className="bg-amber-100 text-amber-600 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Pending</span>
+                          <span className="inline-block bg-amber-100 text-amber-600 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Pending</span>
                         ) : (
-                          <span className="bg-red-100 text-red-500 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Failed</span>
+                          <span className="inline-block bg-red-100 text-red-500 text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">Failed</span>
                         )}
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
           </div>
         </motion.div>
