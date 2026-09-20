@@ -247,6 +247,36 @@ function AddRecipientModal({ onAdd, onClose }: { onAdd: (r: Recipient) => void; 
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SUSPICIOUS MODAL
+// ═══════════════════════════════════════════════════════════════
+function SuspiciousModal({ onClose, recipientName }: { onClose: () => void; recipientName: string }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[32px] p-8 max-w-sm w-full mx-4 shadow-2xl border border-slate-100 text-center relative">
+        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5 text-red-500 border border-red-100 shadow-sm">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Account Flagged</h3>
+        <p className="text-sm text-slate-500 mb-6 font-medium leading-relaxed">
+          Ziro Security has temporarily suspended transfers to <span className="text-slate-700 font-bold">{recipientName}</span> due to multiple reports of suspicious activity and failed identity verifications.
+        </p>
+        <div className="bg-red-50 text-red-700 text-xs font-bold px-4 py-3 rounded-xl border border-red-100 mb-6 text-left flex items-start gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>This recipient has been placed on the restricted list and cannot receive funds at this time.</div>
+        </div>
+        <button onClick={onClose} className="w-full bg-slate-900 hover:bg-black text-white font-bold text-sm py-4 rounded-xl transition-all shadow-md active:scale-95">
+          Acknowledge
+        </button>
+      </motion.div>
+    </div>
+  )
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // STEP HEADER
 // ═══════════════════════════════════════════════════════════════
 function StepHeader({ step, onBack, label }: { step: number; onBack?: () => void; label: string }) {
@@ -285,6 +315,7 @@ export default function TransfersPage() {
   const [note, setNote] = useState("")
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
   const [showAddRecipient, setShowAddRecipient] = useState(false)
+  const [showSuspiciousModal, setShowSuspiciousModal] = useState(false)
 
   const FUNDING_SOURCES: FundingSource[] = [
     { id: "vault", name: "Ziro Balance", type: "Pocket", balance: `$${Math.max(0, vaultBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, last4: "1234", holder: "OLIVIA RHYE", cardNumber: "1234 1234 1234 1234", expiry: "06/28", cssClass: "card-purple" },
@@ -519,13 +550,27 @@ export default function TransfersPage() {
                 {recipients.map(r => {
                   const sel = selectedRecipient?.id === r.id
                   return (
-                    <button key={r.id} onClick={() => { setSelectedRecipient(r); setTimeout(() => setStep("amount"), 300) }} className="flex flex-col items-center gap-2 group">
-                      <div className={`relative w-14 h-14 rounded-full overflow-hidden transition-all ${sel ? "ring-2 ring-[#4a72ff] ring-offset-2 scale-105" : "hover:scale-105"}`}>
-                        <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
-                        {sel && (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 bg-[#4a72ff]/30 flex items-center justify-center">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          </motion.div>
+                    <button key={r.id} onClick={() => { 
+                      if (r.id === "r6") {
+                        setShowSuspiciousModal(true)
+                        return
+                      }
+                      setSelectedRecipient(r); 
+                      setTimeout(() => setStep("amount"), 300) 
+                    }} className="flex flex-col items-center gap-2 group">
+                      <div className="relative">
+                        <div className={`relative w-14 h-14 rounded-full overflow-hidden transition-all ${sel ? "ring-2 ring-[#4a72ff] ring-offset-2 scale-105" : "hover:scale-105"}`}>
+                          <img src={r.avatar} alt={r.name} className="w-full h-full object-cover" />
+                          {sel && (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 bg-[#4a72ff]/30 flex items-center justify-center">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </motion.div>
+                          )}
+                        </div>
+                        {r.id === "r6" && (
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm z-10">
+                            <span className="text-white text-[10px] font-black">!</span>
+                          </div>
                         )}
                       </div>
                       <span className={`text-[11px] font-semibold text-center leading-tight line-clamp-2 ${sel ? "text-[#4a72ff]" : "text-slate-700"}`}>{r.name.split(" ")[0]}<br/><span className={sel ? "text-[#4a72ff]/70 font-medium" : "text-slate-400 font-medium"}>{r.name.split(" ")[1] || ""}</span></span>
@@ -939,6 +984,12 @@ export default function TransfersPage() {
             fee={feesAmount === 0 ? "Free" : formatCurrency(feesAmount)}
             total={formatCurrency(grandTotal)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSuspiciousModal && (
+          <SuspiciousModal onClose={() => setShowSuspiciousModal(false)} recipientName="Amara Obi" />
         )}
       </AnimatePresence>
     </div>

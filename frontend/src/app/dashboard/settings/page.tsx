@@ -148,8 +148,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2 flex flex-col">
-                  <label className="text-slate-700 text-sm font-semibold">Performance Mode</label>
-                  <div className="inline-flex bg-white border border-slate-200 rounded-2xl px-5 py-2.5 gap-6 items-center self-start">
+                  <label className="text-slate-700 text-sm font-semibold mb-1">Performance Mode</label>
+                  <div className="inline-flex bg-white border border-slate-200 rounded-xl px-4 py-2 gap-4 items-center self-start shadow-sm">
                     <span className="text-sm text-slate-800 font-medium whitespace-nowrap">Compact Layout</span>
                     <button 
                       onClick={() => updateAppearance({ performanceMode: !appearance.performanceMode })}

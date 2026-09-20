@@ -96,6 +96,7 @@ export type OfflineTransaction = {
   currency: string
   note?: string
   queued_at: string
+  source?: "vault" | "card"
 }
 
 export type OfflineSyncResponse = {

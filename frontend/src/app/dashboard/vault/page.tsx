@@ -23,9 +23,80 @@ function saveQueue(q: OfflineTransaction[]) {
 
 const springConfig = { type: "spring" as const, stiffness: 300, damping: 24 }
 
+// ═══════════════════════════════════════════════════════════════
+// VAULT PIN MODAL
+// ═══════════════════════════════════════════════════════════════
+function VaultPinModal({ onSuccess, onCancel, amount, currency, recipient }: { onSuccess: () => void; onCancel: () => void; amount: string; currency: string; recipient: string }) {
+  const [pin, setPin] = useState("")
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  const [isError, setIsError] = useState(false)
+
+  const handleKeyPress = useCallback((key: string) => {
+    if (isVerifying || isSuccess) return
+    setIsError(false)
+    if (key === "back") { setPin(prev => prev.slice(0, -1)) }
+    else if (pin.length < 6) {
+      const newPin = pin + key
+      setPin(newPin)
+      if (newPin.length === 6) {
+        setIsVerifying(true)
+        setTimeout(() => {
+          if (newPin === "111111") {
+            setIsVerifying(false); setIsError(true); setPin("")
+          } else { setIsSuccess(true); setTimeout(() => onSuccess(), 800) }
+        }, 800)
+      }
+    }
+  }, [pin, isVerifying, isSuccess, onSuccess])
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (isVerifying || isSuccess) return
+      if (e.key >= "0" && e.key <= "9") handleKeyPress(e.key)
+      else if (e.key === "Backspace") handleKeyPress("back")
+      else if (e.key === "Escape") onCancel()
+    }
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h)
+  }, [handleKeyPress, isVerifying, isSuccess, onCancel])
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl relative">
+        <button onClick={onCancel} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+        <div className="text-center mb-6 mt-2">
+          <h3 className="text-2xl font-black text-slate-900 tracking-tight">Offline Vault PIN</h3>
+          <p className="text-xs text-slate-500 mt-1">Enter your Payment PIN to secure this offline.</p>
+        </div>
+        <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100 space-y-1.5">
+          <div className="flex justify-between items-center"><span className="text-xs font-semibold text-slate-400">Recipient</span><span className="text-sm font-bold text-slate-700">{recipient}</span></div>
+          <div className="flex justify-between items-center"><span className="text-xs font-semibold text-slate-400">Amount</span><span className="text-sm font-black text-slate-900">{currency} {amount}</span></div>
+        </div>
+        
+        <div className="flex justify-center gap-3 mb-6 h-8">
+          {isSuccess ? (<div className="flex items-center text-emerald-500 gap-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="text-sm font-bold">Authorized</span></div>
+          ) : isVerifying ? (<div className="flex items-center text-slate-500 gap-3"><div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-slate-800 animate-spin" /><span className="text-sm font-bold">Verifying...</span></div>
+          ) : (<>{[...Array(6)].map((_, i) => (<div key={i} className="w-3.5 h-3.5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center"><AnimatePresence>{pin.length > i && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="w-2.5 h-2.5 rounded-full bg-slate-800" />)}</AnimatePresence></div>))}</>)}
+        </div>
+        {isError && <div className="text-center text-xs font-bold text-red-500 -mt-2 mb-4">Incorrect PIN. Please try again.</div>}
+        
+        <div className="grid grid-cols-3 gap-2">
+          {["1","2","3","4","5","6","7","8","9","","0","back"].map((k, i) => (
+            k === "" ? <div key={i} /> : <button key={i} onClick={() => handleKeyPress(k)} disabled={isVerifying || isSuccess} className={`h-12 rounded-2xl flex items-center justify-center text-xl font-medium transition-all active:scale-95 ${k === "back" ? "text-slate-500 hover:bg-slate-100 disabled:opacity-30" : "text-slate-800 hover:bg-slate-50 active:bg-slate-100 disabled:opacity-30"}`}>
+              {k === "back" ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg> : k}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 export default function VaultPage() {
   const { user } = useAuth()
-  const { addTransaction, deductBalance } = useFinance()
+  const { addTransaction, deductBalance, vaultBalance, cardBalance } = useFinance()
 
   const [isOnline, setIsOnline]       = useState(true)
   const [queue, setQueue]             = useState<OfflineTransaction[]>([])
@@ -38,6 +109,11 @@ export default function VaultPage() {
   const [amount, setAmount]       = useState("")
   const [currency, setCurrency]   = useState("USD")
   const [note, setNote]           = useState("")
+  const [fundingSource, setFundingSource] = useState<"vault" | "card">("vault")
+  
+  // Security and Validation
+  const [queueError, setQueueError] = useState("")
+  const [showPinModal, setShowPinModal] = useState(false)
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -86,7 +162,7 @@ export default function VaultPage() {
           ref: `ZR-OFF-${tx.id.substring(8, 12)}`
         })
         if (tx.currency === "USD") {
-          deductBalance(tx.amount)
+          deductBalance(tx.amount, tx.source || "vault")
         }
       })
 
@@ -105,6 +181,7 @@ export default function VaultPage() {
   }, [user, syncing, queue, addTransaction, deductBalance])
 
   const queueTransaction = useCallback(() => {
+    setShowPinModal(false)
     if (!recipient.trim() || !amount) return
     const tx: OfflineTransaction = {
       id: `offline-${Date.now()}`,
@@ -113,15 +190,32 @@ export default function VaultPage() {
       currency,
       note,
       queued_at: new Date().toISOString(),
+      source: fundingSource
     }
     const updated = [tx, ...queue] // Prepend so new items animate at the top
     setQueue(updated)
     saveQueue(updated)
-    setRecipient(""); setAmount(""); setNote("")
+    setRecipient(""); setAmount(""); setNote(""); setFundingSource("vault"); setQueueError("");
     if (isOnline) {
       setTimeout(handleSync, 100)
     }
-  }, [recipient, amount, currency, note, queue, isOnline, handleSync])
+  }, [recipient, amount, currency, note, fundingSource, queue, isOnline, handleSync])
+
+  const handleAttemptQueue = useCallback(() => {
+    setQueueError("")
+    const amountNum = parseFloat(amount)
+    if (!recipient.trim() || !amount || isNaN(amountNum) || amountNum <= 0) return
+    
+    // Validate balance before even attempting PIN
+    const currentBalance = fundingSource === "vault" ? vaultBalance : cardBalance;
+    if (amountNum > currentBalance) {
+      setQueueError(`Insufficient funds. Your ${fundingSource === "vault" ? "Ziro Balance" : "JPM Chase"} balance is $${currentBalance.toLocaleString("en-US", {minimumFractionDigits: 2})}.`)
+      return
+    }
+    
+    // Request PIN
+    setShowPinModal(true)
+  }, [amount, recipient, fundingSource, vaultBalance, cardBalance])
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -137,7 +231,19 @@ export default function VaultPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8 relative">
+    <>
+      <AnimatePresence>
+        {showPinModal && (
+          <VaultPinModal 
+            onSuccess={queueTransaction} 
+            onCancel={() => setShowPinModal(false)}
+            amount={amount}
+            currency={currency}
+            recipient={recipient}
+          />
+        )}
+      </AnimatePresence>
+      <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8 relative">
       {/* Background Ambient Glows */}
       <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-indigo-400/10 rounded-full blur-[100px] pointer-events-none -z-10" />
       <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-slate-400/10 rounded-full blur-[100px] pointer-events-none -z-10" />
@@ -293,19 +399,28 @@ export default function VaultPage() {
                 <label className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2 block">Recipient</label>
                 <input type="text" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="@username or 0x..." className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 text-slate-800 placeholder:text-slate-300 font-bold focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner" />
               </div>
-              <div className="grid grid-cols-3 gap-5">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
                   <label className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2 block">Amount</label>
                   <div className="relative">
                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 font-black text-lg">$</span>
-                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl pl-10 pr-5 py-4 text-slate-800 placeholder:text-slate-300 font-black focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner" />
+                    <input type="number" value={amount} onChange={(e) => { setAmount(e.target.value); setQueueError(""); }} placeholder="0.00" className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl pl-10 pr-5 py-4 text-slate-800 placeholder:text-slate-300 font-black focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner" />
                   </div>
                 </div>
-                <div>
-                  <label className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2 block">Currency</label>
-                  <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 text-slate-800 font-bold focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner cursor-pointer appearance-none">
-                    <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2 block">Currency</label>
+                    <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 text-slate-800 font-bold focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner cursor-pointer appearance-none">
+                      <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-2 block">Source</label>
+                    <select value={fundingSource} onChange={(e) => { setFundingSource(e.target.value as "vault"|"card"); setQueueError(""); }} className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 text-slate-800 font-bold focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner cursor-pointer appearance-none">
+                      <option value="vault">Ziro Balance</option>
+                      <option value="card">JPM Chase</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               <div>
@@ -313,10 +428,16 @@ export default function VaultPage() {
                 <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. offline payment" className="w-full bg-slate-50/50 border border-slate-200/60 rounded-2xl px-5 py-4 text-slate-800 placeholder:text-slate-300 font-bold focus:outline-none focus:border-[#4a72ff] focus:bg-white transition-all text-base shadow-inner" />
               </div>
               
+              {queueError && (
+                <div className="text-red-500 text-xs font-bold -mt-2 bg-red-50 p-3 rounded-xl border border-red-100 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {queueError}
+                </div>
+              )}
               <motion.button 
-                whileHover={recipient.trim() && amount ? { scale: 1.02, y: -2, boxShadow: "0 10px 25px -5px rgba(15,23,42,0.2)" } : {}}
-                whileTap={recipient.trim() && amount ? { scale: 0.98 } : {}}
-                onClick={queueTransaction} 
+                whileHover={recipient.trim() && amount && !queueError ? { scale: 1.02, y: -2, boxShadow: "0 10px 25px -5px rgba(15,23,42,0.2)" } : {}}
+                whileTap={recipient.trim() && amount && !queueError ? { scale: 0.98 } : {}}
+                onClick={handleAttemptQueue} 
                 disabled={!recipient.trim() || !amount} 
                 className="w-full bg-slate-900 hover:bg-black disabled:opacity-40 text-white font-bold text-base px-6 py-4 rounded-2xl transition-all flex items-center justify-center gap-3 mt-4"
               >
@@ -398,5 +519,6 @@ export default function VaultPage() {
         </motion.div>
       </div>
     </div>
+    </>
   )
 }
