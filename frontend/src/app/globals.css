@@ -44,3 +44,63 @@ body {
 * {
   border-color: #e2e8f0;
 }
+
+/* ─── Dark Mode (Pure CSS Overrides) ───────────────────────────────────────── */
+.dark body,
+.dark {
+  background-color: #0a0a0f !important;
+  color: #f1f5f9 !important;
+}
+
+.dark body {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px) !important;
+}
+
+.dark * {
+  border-color: #1e293b !important;
+}
+
+/* Layout Shell Overrides (using data attributes to avoid escaping bugs) */
+.dark [data-dark-shell] {
+  background-color: #0a0a0f !important;
+}
+.dark [data-dark-card] {
+  background-color: rgba(15, 17, 25, 0.6) !important;
+}
+.dark [data-dark-sidebar] {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+.dark [data-dark-logo] {
+  filter: brightness(2) !important;
+}
+.dark [data-dark-pill] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark [data-dark-pill]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Text Overrides */
+.dark .text-slate-900 { color: #f1f5f9 !important; }
+.dark .text-slate-800 { color: #e2e8f0 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-slate-500 { color: #64748b !important; }
+.dark .text-slate-400 { color: #475569 !important; }
+
+/* Background Overrides */
+.dark .bg-white { background-color: #13151f !important; }
+.dark .bg-slate-50 { background-color: #13151f !important; }
+.dark .bg-slate-100 { background-color: #181a26 !important; }
+.dark .bg-slate-200 { background-color: #1e293b !important; }
+
+/* Inverted Buttons */
+.dark .bg-slate-900 { background-color: #f1f5f9 !important; color: #0a0a0f !important; }
+.dark .bg-slate-900:hover { background-color: #e2e8f0 !important; }
+
+/* Shadows */
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }

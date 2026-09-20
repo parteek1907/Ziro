@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, use, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useConsultantStore } from "@/store/useConsultantStore"
+import { useFinance } from "@/lib/FinanceContext"
 import Link from "next/link"
 import { ArrowLeft, Star, Globe, Clock, CheckCircle2, Calendar, FileText, Lock, Shield } from "lucide-react"
 
@@ -30,8 +31,30 @@ export default function ConsultantProfilePage({ params }: { params: Promise<{ id
   const platformFee = 2
   const totalAmount = selectedPricing.price + platformFee
 
-  const DATES = ["Today", "Tomorrow", "Oct 30", "Oct 31"]
+  const { deductBalance, addTransaction } = useFinance()
+  const [screenshotName, setScreenshotName] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const DATES = useMemo(() => {
+    const dates = ["Today", "Tomorrow"]
+    const today = new Date()
+    for (let i = 2; i < 4; i++) {
+      const nextDate = new Date(today)
+      nextDate.setDate(today.getDate() + i)
+      const month = nextDate.toLocaleString('default', { month: 'short' })
+      const day = nextDate.getDate()
+      dates.push(`${month} ${day}`)
+    }
+    return dates
+  }, [])
+
   const TIMES = ["10:00 AM", "11:30 AM", "1:00 PM", "3:30 PM", "5:00 PM"]
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setScreenshotName(e.target.files[0].name)
+    }
+  }
 
   const handleBook = () => {
     setIsProcessing(true)
@@ -47,6 +70,17 @@ export default function ConsultantProfilePage({ params }: { params: Promise<{ id
         consultantPrice: selectedPricing.price,
         platformFee,
         totalAmount
+      })
+      deductBalance(totalAmount, "card")
+      addTransaction({
+        id: `tx-${Date.now()}`,
+        type: "Consultation",
+        to: consultant.name,
+        route: "USD",
+        amount: `-$${totalAmount.toFixed(2)}`,
+        status: "Completed",
+        time: "Just now",
+        ref: `CS-${Math.floor(Math.random() * 10000)}`
       })
       router.push("/dashboard/consultants/my-consultations")
     }, 1500)
@@ -237,9 +271,21 @@ export default function ConsultantProfilePage({ params }: { params: Promise<{ id
                     placeholder="I sent an international transfer yesterday and it is still pending. I would like to understand what happened."
                     className="w-full h-32 bg-white/60 border border-slate-200 rounded-2xl p-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4a72ff]/30 text-slate-700 placeholder:text-slate-400 resize-none mb-2"
                   />
-                  <button className="flex items-center gap-2 text-sm text-[#4a72ff] font-semibold hover:underline">
-                    <FileText size={16} /> Attach screenshot (optional)
-                  </button>
+                  <div>
+                    <input 
+                      type="file" 
+                      accept="image/png" 
+                      className="hidden" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange}
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 text-sm text-[#4a72ff] font-semibold hover:underline"
+                    >
+                      <FileText size={16} /> {screenshotName || "Attach screenshot (optional)"}
+                    </button>
+                  </div>
 
                   <div className="flex gap-3 mt-6">
                     <button onClick={() => setStep(3)} className="px-6 py-3 rounded-full bg-slate-100 text-slate-600 font-semibold hover:bg-slate-200">Back</button>

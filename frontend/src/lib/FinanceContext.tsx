@@ -24,8 +24,10 @@ const INITIAL_TRANSACTIONS: Transaction[] = [
 
 interface FinanceContextType {
   totalBalance: number
+  vaultBalance: number
+  cardBalance: number
   transactions: Transaction[]
-  deductBalance: (amountInUSD: number) => void
+  deductBalance: (amountInUSD: number, sourceId?: string) => void
   addTransaction: (tx: Transaction) => void
   trustScore: TrustScoreResponse | null
   loadingTrust: boolean
@@ -36,7 +38,9 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined)
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
-  const [totalBalance, setTotalBalance] = useState<number>(54904.80)
+  const [vaultBalance, setVaultBalance] = useState<number>(42504.80)
+  const [cardBalance, setCardBalance] = useState<number>(12400.00)
+  const totalBalance = vaultBalance + cardBalance
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS)
   const [isLoaded, setIsLoaded] = useState(false)
   const { user } = useAuth()
@@ -92,8 +96,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     Promise.resolve().then(() => {
       try {
-        const storedBalance = localStorage.getItem("ziro_totalBalance_v2")
-        if (storedBalance) setTotalBalance(parseFloat(storedBalance))
+        const storedTotal = localStorage.getItem("ziro_totalBalance_v2")
+        const storedVault = localStorage.getItem("ziro_vaultBalance_v2")
+        const storedCard = localStorage.getItem("ziro_cardBalance_v2")
+
+        if (storedVault && storedCard) {
+          setVaultBalance(parseFloat(storedVault))
+          setCardBalance(parseFloat(storedCard))
+        } else if (storedTotal && !storedVault) {
+          // Migration from old schema
+          const total = parseFloat(storedTotal)
+          setCardBalance(12400)
+          setVaultBalance(Math.max(0, total - 12400))
+        }
 
         const storedTx = localStorage.getItem("ziro_transactions_v2")
         if (storedTx) setTransactions(JSON.parse(storedTx))
@@ -105,16 +120,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     });
   }, [])
 
-  // Sync to local storage on changes
   useEffect(() => {
     if (isLoaded) {
+      localStorage.setItem("ziro_vaultBalance_v2", vaultBalance.toString())
+      localStorage.setItem("ziro_cardBalance_v2", cardBalance.toString())
       localStorage.setItem("ziro_totalBalance_v2", totalBalance.toString())
       localStorage.setItem("ziro_transactions_v2", JSON.stringify(transactions))
     }
-  }, [totalBalance, transactions, isLoaded])
+  }, [vaultBalance, cardBalance, totalBalance, transactions, isLoaded])
 
-  const deductBalance = (amountInUSD: number) => {
-    setTotalBalance((prev) => Math.max(0, prev - amountInUSD))
+  const deductBalance = (amountInUSD: number, sourceId: string = "vault") => {
+    if (sourceId === "card") {
+      setCardBalance((prev) => Math.max(0, prev - amountInUSD))
+    } else {
+      setVaultBalance((prev) => Math.max(0, prev - amountInUSD))
+    }
   }
 
   const addTransaction = (tx: Transaction) => {
@@ -122,7 +142,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <FinanceContext.Provider value={{ totalBalance, transactions, deductBalance, addTransaction, trustScore, loadingTrust, trustError, fetchTrustScore }}>
+    <FinanceContext.Provider value={{ totalBalance, vaultBalance, cardBalance, transactions, deductBalance, addTransaction, trustScore, loadingTrust, trustError, fetchTrustScore }}>
       {children}
     </FinanceContext.Provider>
   )

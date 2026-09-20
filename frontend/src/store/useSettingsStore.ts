@@ -13,8 +13,7 @@ export interface ProfileSettings {
 }
 
 export interface AppearanceSettings {
-  theme: 'Light' | 'Dark' | 'System';
-  language: 'English' | string;
+  theme: 'Light' | 'Dark';
   reduceAnimations: boolean;
 }
 
@@ -42,7 +41,6 @@ export interface NotificationSettings {
 }
 
 export interface ZiroPaymentSettings {
-  preferredRoute: 'Smart Routing' | 'Traditional Rail' | 'Decentralized Rail';
   requireConfirmation: boolean;
   securityScreening: boolean;
 }
@@ -90,8 +88,7 @@ const DEFAULT_SETTINGS = {
     archetype: 'The Guardian',
   },
   appearance: {
-    theme: 'System' as const,
-    language: 'English',
+    theme: 'Light' as const,
     reduceAnimations: false,
   },
   sessions: DEFAULT_SESSIONS,
@@ -108,7 +105,6 @@ const DEFAULT_SETTINGS = {
     productUpdates: false,
   },
   payments: {
-    preferredRoute: 'Smart Routing' as const,
     requireConfirmation: true,
     securityScreening: true,
   }

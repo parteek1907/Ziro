@@ -12,12 +12,14 @@ const ZIRO_FEATURES = [
   {
     title: "Smart Settlement Engine",
     description: "Understand how Ziro routes payments across traditional and decentralized rails.",
-    href: null,
+    href: "/dashboard/transfers",
+    cta: "Send Money"
   },
   {
     title: "AI Payment Firewall",
     description: "Learn how Ziro detects suspicious payments, scams, and address poisoning.",
-    href: null,
+    href: "/dashboard/activity",
+    cta: "Review Activity"
   },
   {
     title: "Human Consultant",
@@ -28,17 +30,20 @@ const ZIRO_FEATURES = [
   {
     title: "Offline Payment Engine",
     description: "Learn how transactions can be queued when you don't have an internet connection.",
-    href: null,
+    href: "/dashboard/vault",
+    cta: "Open Vault"
   },
   {
     title: "TrustScore",
     description: "Understand your privacy-preserving financial TrustScore.",
     href: "/dashboard/trustscore",
+    cta: "View TrustScore"
   },
   {
     title: "Identity & Profiles",
     description: "Manage your Ziro identity, profile, and account information.",
     href: "/dashboard/settings",
+    cta: "Manage Settings"
   }
 ]
 
@@ -105,15 +110,15 @@ const PAYMENT_ISSUES = {
 export default function HelpCenterPage() {
   const { user } = useAuth()
   const { tickets, addTicket } = useHelpStore()
-  
+
   const [searchQuery, setSearchQuery] = useState("")
-  
+
   // States
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null)
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null)
   const [showSupportForm, setShowSupportForm] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<string | null>(null)
-  
+
   // Form State
   const [formData, setFormData] = useState({
     name: user?.displayName || "",
@@ -126,21 +131,21 @@ export default function HelpCenterPage() {
 
   // Derive filtered items
   const normalizedQuery = searchQuery.toLowerCase().trim()
-  
+
   // Filter FAQs
   const filteredFaqs = FAQS.map(cat => ({
     ...cat,
-    questions: cat.questions.filter(q => 
-      !normalizedQuery || 
-      q.q.toLowerCase().includes(normalizedQuery) || 
+    questions: cat.questions.filter(q =>
+      !normalizedQuery ||
+      q.q.toLowerCase().includes(normalizedQuery) ||
       q.a.toLowerCase().includes(normalizedQuery)
     )
   })).filter(cat => cat.questions.length > 0)
-  
+
   // Filter Features
-  const filteredFeatures = ZIRO_FEATURES.filter(f => 
-    !normalizedQuery || 
-    f.title.toLowerCase().includes(normalizedQuery) || 
+  const filteredFeatures = ZIRO_FEATURES.filter(f =>
+    !normalizedQuery ||
+    f.title.toLowerCase().includes(normalizedQuery) ||
     f.description.toLowerCase().includes(normalizedQuery)
   )
 
@@ -149,17 +154,17 @@ export default function HelpCenterPage() {
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.subject || !formData.description) return
-    
+
     const id = addTicket({
       issueType: formData.issueType,
       subject: formData.subject,
       description: formData.description + (formData.transactionId ? `\n\nTxID: ${formData.transactionId}` : "")
     })
-    
+
     setSubmitStatus(`Support request submitted. Ticket ID: ${id}`)
     setShowSupportForm(false)
     setFormData({ ...formData, subject: "", description: "", transactionId: "" })
-    
+
     setTimeout(() => {
       setSubmitStatus(null)
     }, 5000)
@@ -167,15 +172,15 @@ export default function HelpCenterPage() {
 
   // Determine if a consultant escalation makes sense based on search
   const showConsultantEscalation = normalizedQuery && (
-    normalizedQuery.includes("international") || 
-    normalizedQuery.includes("complicated") || 
+    normalizedQuery.includes("international") ||
+    normalizedQuery.includes("complicated") ||
     normalizedQuery.includes("scam") ||
     normalizedQuery.includes("help")
   )
 
   return (
     <div className="min-h-full p-6 md:p-10 lg:p-12 w-full max-w-[1000px] mx-auto pb-32">
-      
+
       {/* Header */}
       <div className="mb-12 text-center md:text-left">
         <h1 className="text-[2.5rem] md:text-[3.5rem] font-bold tracking-tight text-slate-900 leading-tight">
@@ -190,7 +195,7 @@ export default function HelpCenterPage() {
       <div className="relative mb-16">
         <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
         <input
@@ -206,7 +211,7 @@ export default function HelpCenterPage() {
       <div className="bg-[#4a72ff]/5 border border-[#4a72ff]/20 rounded-[24px] p-6 mb-16 flex items-start gap-4">
         <div className="shrink-0 mt-1 text-[#4a72ff]">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </div>
         <div>
@@ -241,7 +246,7 @@ export default function HelpCenterPage() {
                   <button key={item.title} onClick={() => setSearchQuery(item.title)} className="bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl p-6 text-left hover:border-[#4a72ff]/40 hover:shadow-sm transition-all group">
                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 mb-4 group-hover:bg-[#4a72ff]/10 group-hover:text-[#4a72ff] transition-colors">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d={item.icon}/>
+                        <path d={item.icon} />
                       </svg>
                     </div>
                     <h4 className="font-bold text-slate-900 mb-1">{item.title}</h4>
@@ -301,13 +306,13 @@ export default function HelpCenterPage() {
                         const isExpanded = expandedFaq === q.q
                         return (
                           <div key={qIdx} className="bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl overflow-hidden transition-all">
-                            <button 
+                            <button
                               onClick={() => setExpandedFaq(isExpanded ? null : q.q)}
                               className="w-full text-left px-6 py-4 flex items-center justify-between font-semibold text-slate-900 hover:bg-white/40"
                             >
                               <span className="pr-4">{q.q}</span>
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                                <polyline points="6 9 12 15 18 9"/>
+                                <polyline points="6 9 12 15 18 9" />
                               </svg>
                             </button>
                             <AnimatePresence>
@@ -344,11 +349,10 @@ export default function HelpCenterPage() {
                     <button
                       key={issue}
                       onClick={() => setSelectedIssue(issue)}
-                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                        selectedIssue === issue 
-                          ? 'bg-[#4a72ff]/10 text-[#4a72ff]' 
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${selectedIssue === issue
+                          ? 'bg-[#4a72ff]/10 text-[#4a72ff]'
                           : 'text-slate-600 hover:bg-white/40'
-                      }`}
+                        }`}
                     >
                       {issue}
                     </button>
@@ -361,7 +365,16 @@ export default function HelpCenterPage() {
                       <p className="text-slate-600 text-sm leading-relaxed mb-6">
                         {(PAYMENT_ISSUES as any)[selectedIssue]}
                       </p>
-                      <button onClick={() => { setShowSupportForm(true); setFormData({...formData, issueType: "Payment", subject: selectedIssue}) }} className="text-[#4a72ff] font-semibold text-sm hover:underline">
+                      <button
+                        onClick={() => {
+                          setShowSupportForm(true);
+                          setFormData({ ...formData, issueType: "Payment", subject: selectedIssue });
+                          setTimeout(() => {
+                            document.getElementById('support-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                          }, 300);
+                        }}
+                        className="text-[#4a72ff] font-semibold text-sm hover:underline"
+                      >
                         Contact Support about this &rarr;
                       </button>
                     </motion.div>
@@ -377,13 +390,25 @@ export default function HelpCenterPage() {
 
           {/* Contact Support & Tickets */}
           {!normalizedQuery && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div id="support-form-section" className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 mb-20">
               {/* Still Need Help */}
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-4">Still need help?</h3>
                 <p className="text-slate-500 mb-6">Our support team can help you troubleshoot Ziro-related issues.</p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => setShowSupportForm(!showSupportForm)} className="bg-slate-900 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors text-center">
+                  <button
+                    onClick={() => {
+                      if (!showSupportForm) {
+                        setShowSupportForm(true);
+                        setTimeout(() => {
+                          document.getElementById('support-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }, 300);
+                      } else {
+                        setShowSupportForm(false);
+                      }
+                    }}
+                    className="bg-slate-900 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors text-center"
+                  >
                     Contact Support
                   </button>
                   <Link href="/dashboard/consultants" className="bg-white border border-slate-200 text-slate-800 px-6 py-3 rounded-full font-bold text-sm hover:bg-slate-50 transition-colors text-center">
@@ -394,11 +419,11 @@ export default function HelpCenterPage() {
                 <AnimatePresence>
                   {showSupportForm && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                      <form onSubmit={handleSupportSubmit} className="mt-8 bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-sm space-y-4">
+                      <form id="support-form" onSubmit={handleSupportSubmit} className="mt-8 bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-sm space-y-4">
                         <h4 className="font-bold text-slate-900 mb-2">Submit Request</h4>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-600">Issue Type</label>
-                          <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none appearance-none text-sm" value={formData.issueType} onChange={e => setFormData({...formData, issueType: e.target.value})}>
+                          <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none appearance-none text-sm" value={formData.issueType} onChange={e => setFormData({ ...formData, issueType: e.target.value })}>
                             {["Payment", "Transfer", "Security", "TrustScore", "Offline Payment", "Account", "Consultant", "Other"].map(opt => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
@@ -406,15 +431,15 @@ export default function HelpCenterPage() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-600">Subject</label>
-                          <input required type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} placeholder="Brief description of the issue" />
+                          <input required type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Brief description of the issue" />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-600">Transaction ID (Optional)</label>
-                          <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.transactionId} onChange={e => setFormData({...formData, transactionId: e.target.value})} placeholder="e.g. 0x123...abc" />
+                          <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.transactionId} onChange={e => setFormData({ ...formData, transactionId: e.target.value })} placeholder="e.g. 0x123...abc" />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-semibold text-slate-600">Description</label>
-                          <textarea required className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none text-sm min-h-[120px]" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Provide detailed information about your issue..." />
+                          <textarea required className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none text-sm min-h-[120px]" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Provide detailed information about your issue..." />
                         </div>
                         <div className="pt-2">
                           <button type="submit" className="w-full bg-[#4a72ff] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#3d60db] transition-colors">
@@ -425,7 +450,7 @@ export default function HelpCenterPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                
+
                 {submitStatus && (
                   <div className="mt-4 p-4 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-medium border border-emerald-100">
                     {submitStatus}
@@ -448,18 +473,14 @@ export default function HelpCenterPage() {
                         <div>
                           <div className="flex items-center gap-3 mb-1">
                             <span className="font-bold text-slate-900 text-sm">{ticket.id}</span>
-                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${
-                              ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-                            }`}>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                              }`}>
                               {ticket.status}
                             </span>
                           </div>
                           <div className="text-slate-600 font-medium text-sm">{ticket.subject}</div>
                           <div className="text-slate-400 text-xs mt-1">Submitted on {new Date(ticket.createdAt).toLocaleDateString()}</div>
                         </div>
-                        <button className="text-sm font-semibold text-[#4a72ff] hover:underline whitespace-nowrap self-start sm:self-center">
-                          View request
-                        </button>
                       </div>
                     ))}
                   </div>
@@ -470,6 +491,8 @@ export default function HelpCenterPage() {
         </>
       )}
 
+      {/* Explicit Bottom Spacer for Scroll Container */}
+      <div className="h-16 shrink-0 w-full" />
     </div>
   )
 }

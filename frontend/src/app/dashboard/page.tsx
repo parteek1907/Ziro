@@ -180,11 +180,11 @@ export default function DashboardOverview() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="mt-4 flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 w-fit shadow-md group"
+              className="mt-4 flex items-center gap-2 bg-white/60 backdrop-blur-md border border-white/50 rounded-xl px-3 py-2 w-fit shadow-sm group"
             >
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mr-2">Polygon Connected</span>
-              <span className="text-xs font-mono text-slate-300 group-hover:text-white transition-colors select-all">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 mr-2">Polygon Connected</span>
+              <span className="text-xs font-mono text-slate-500 group-hover:text-slate-800 transition-colors select-all">
                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
               </span>
             </motion.div>

@@ -4,7 +4,9 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/AuthContext"
 import { FinanceProvider } from "@/lib/FinanceContext"
-import { useState } from "react"
+
+import { useState, useEffect } from "react"
+import { useSettingsStore } from "@/store/useSettingsStore"
 
 export default function DashboardLayout({
   children,
@@ -36,8 +38,46 @@ export default function DashboardLayout({
     router.push("/")
   }
 
+  const { profile, updateProfile, appearance } = useSettingsStore()
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (appearance.theme === "Dark") {
+      root.classList.add("dark")
+    } else {
+      root.classList.remove("dark")
+    }
+  }, [appearance.theme])
+
+  useEffect(() => {
+    if (user) {
+      const updates: any = {}
+      let needsUpdate = false
+
+      if (!profile.email) {
+        updates.email = user.email || ""
+        updates.name = user.displayName || ""
+        needsUpdate = true
+      }
+      
+      if (!profile.username && user.displayName) {
+        updates.username = `@${user.displayName.replace(/\s+/g, "").toLowerCase()}`
+        needsUpdate = true
+      }
+
+      if (!profile.phone && user.phoneNumber) {
+        updates.phone = user.phoneNumber
+        needsUpdate = true
+      }
+
+      if (needsUpdate) {
+        updateProfile(updates)
+      }
+    }
+  }, [user, profile.email, profile.username, profile.phone, updateProfile])
+
   return (
-    <div className="h-screen w-full relative flex overflow-hidden bg-[#e0e5e0] font-sans">
+    <div className="h-screen w-full relative flex overflow-hidden bg-[#e0e5e0] font-sans transition-colors duration-300" data-dark-shell>
       
       {/* Ambient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -49,14 +89,14 @@ export default function DashboardLayout({
       </div>
 
       {/* Main Glassmorphic Container */}
-      <div className="relative z-10 w-full h-full bg-white/40 backdrop-blur-3xl flex overflow-hidden">
+      <div className="relative z-10 w-full h-full bg-white/40 backdrop-blur-3xl flex overflow-hidden transition-colors duration-300" data-dark-card>
         
         {/* Sidebar */}
-        <aside className="w-[280px] bg-black/5 border-r border-white/30 flex flex-col justify-between hidden md:flex shrink-0">
+        <aside className="w-[280px] bg-black/5 border-r border-white/30 flex flex-col justify-between hidden md:flex shrink-0 transition-colors duration-300" data-dark-sidebar>
           <div>
-            <div className="h-24 flex items-center px-6 pt-2">
-              <Link href="/dashboard" className="flex items-center">
-                <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-left" />
+            <div className="h-24 flex items-center justify-center pt-2 pr-16">
+              <Link href="/dashboard" className="flex items-center justify-center">
+                <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-center" data-dark-logo />
               </Link>
             </div>
             
@@ -117,6 +157,7 @@ export default function DashboardLayout({
             <Link 
               href="/dashboard/settings" 
               className="flex items-center gap-3 bg-white/40 hover:bg-white/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/40 shadow-sm transition-all hover:scale-[1.02]"
+              data-dark-pill
             >
               <span className="text-sm font-bold text-slate-800">{displayName}</span>
               <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-200 border-2 border-white flex items-center justify-center shrink-0">
@@ -130,7 +171,7 @@ export default function DashboardLayout({
           </header>
 
           {/* Scrollable Page Content */}
-          <div className="flex-1 overflow-y-auto relative z-10 custom-scrollbar flex flex-col">
+          <div className="flex-1 overflow-y-scroll relative z-10 custom-scrollbar flex flex-col">
             <FinanceProvider>
               {children}
             </FinanceProvider>
@@ -168,5 +209,6 @@ export default function DashboardLayout({
 
       </div>
     </div>
+
   )
 }

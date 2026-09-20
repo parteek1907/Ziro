@@ -10,7 +10,9 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  updatePassword,
+  deleteUser
 } from "firebase/auth";
 
 type User = {
@@ -27,6 +29,8 @@ type AuthContextType = {
   signup: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  updateUserPassword: (password: string) => Promise<void>;
+  deleteUserAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,6 +40,8 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => {},
   logout: async () => {},
   loginWithGoogle: async () => {},
+  updateUserPassword: async () => {},
+  deleteUserAccount: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -177,8 +183,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserPassword = async (password: string) => {
+    if (auth && auth.currentUser) {
+      await updatePassword(auth.currentUser, password);
+    }
+  };
+
+  const deleteUserAccount = async () => {
+    if (auth && auth.currentUser) {
+      await deleteUser(auth.currentUser);
+    }
+    setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("ziro_user");
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, loginWithGoogle }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, loginWithGoogle, updateUserPassword, deleteUserAccount }}>
       {children}
     </AuthContext.Provider>
   );
