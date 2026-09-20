@@ -17,6 +17,7 @@ type User = {
   uid: string;
   email: string | null;
   displayName?: string | null;
+  photoURL?: string | null;
 };
 
 type AuthContextType = {
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               uid: result.user.uid,
               email: result.user.email,
               displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
             });
           }
         })
@@ -73,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
           });
         } else {
           setUser(null);
