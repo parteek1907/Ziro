@@ -103,6 +103,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           setVaultBalance(Math.max(0, total - 12400))
         }
 
+        const storedTx = localStorage.getItem("ziro_transactions_v2")
         if (storedTx) {
           let parsedTx = JSON.parse(storedTx);
           
