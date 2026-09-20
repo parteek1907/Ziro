@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field
+from typing import Optional
 
 class Wallet(BaseModel):
     id: str
@@ -10,9 +12,6 @@ class Wallet(BaseModel):
     wallet_type: str
     is_verified: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
-
-from typing import Optional
-
 class WalletCreate(BaseModel):
     chain: str
     public_address: Optional[str] = None

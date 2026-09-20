@@ -34,11 +34,7 @@ function RollingMoney({
   const [done, setDone] = useState(!shouldAnimate);
 
   useEffect(() => {
-    if (!shouldAnimate) {
-      setVal(target);
-      setDone(true);
-      return;
-    }
+    if (!shouldAnimate) return;
 
     let start: number | null = null;
     const duration = 1200; // ms

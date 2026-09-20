@@ -43,7 +43,7 @@ export default function SettingsPage() {
 
   // Sync profile form when profile store changes
   useEffect(() => {
-    setProfileForm(profile)
+    Promise.resolve().then(() => setProfileForm(profile))
   }, [profile])
 
   const handleSaveProfile = () => {

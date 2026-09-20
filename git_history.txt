@@ -1,0 +1,2965 @@
+commit f19e35e16bd252b711d4fbe17e49870a27fcdcbf
+Author: Darsh Ohri <DARSH.OHRI061@nmims.in>
+Date:   Sat Sep 19 23:53:16 2026 +0530
+
+    fix: remove deleted API endpoints and replace with mock delay
+
+diff --git a/frontend/src/app/dashboard/transfers/page.tsx b/frontend/src/app/dashboard/transfers/page.tsx
+index d80f2d4..cbd37e7 100644
+--- a/frontend/src/app/dashboard/transfers/page.tsx
++++ b/frontend/src/app/dashboard/transfers/page.tsx
+@@ -5,16 +5,11 @@ import { motion, AnimatePresence } from "framer-motion"
+ import { useAuth } from "@/lib/AuthContext"
+ import {
+   checkRecipient,
+-  compareRoutes,
+-  createPayment,
+-  confirmPayment,
+-  executePayment,
+-  getPaymentStatus
++  compareRoutes
+ } from "@/lib/api"
+ import type {
+   RecipientCheckResponse,
+-  RouteOption,
+-  PaymentRecord
++  RouteOption
+ } from "@/lib/api"
+ import Link from "next/link"
+ import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
+@@ -163,7 +158,7 @@ export default function TransfersPage() {
+   const [executionStatus, setExecutionStatus] = useState("")
+ 
+   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null)
+-  const [currentPayment, setCurrentPayment] = useState<PaymentRecord | null>(null)
++  const [currentPayment, setCurrentPayment] = useState<any | null>(null)
+   const [checkingRecipient, setCheckingRecipient] = useState(false)
+ 
+   const dismissToast = () => setToast(null)
+@@ -220,85 +215,38 @@ export default function TransfersPage() {
+     setView("confirm")
+   }, [amount, recipient, recipientState])
+ 
+-  // "Confirm & Send" on the confirmation card calls the real API
++  // "Confirm & Send" on the confirmation card
+   const handleConfirmSend = useCallback(async () => {
+     try {
+-      // Use simulation chain for testing to prevent strict address format blocking
+-      const chain = "simulation"
+-      const uid = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)
++      setIsExecuting(true)
++      setExecutionStatus("Authorizing...")
++      await new Promise(r => setTimeout(r, 800))
++      setExecutionStatus("Executing transfer...")
++      await new Promise(r => setTimeout(r, 1200))
+       
+-      // Ensure sender and recipient meet address format requirements
+-      const recipientAddress = recipient.trim().startsWith("@") || recipient.trim().length >= 10 ? recipient.trim() : `@${recipient.trim()}`
+-      const senderAddress = fundingSource.id.startsWith("ziro_") ? fundingSource.id : `ziro_wallet_${fundingSource.id}`
+-
+-      const payment = await createPayment({
+-        idempotency_key: uid,
+-        user_id: activeUserId,
+-        recipient_address: recipientAddress,
+-        sender_address: senderAddress,
+-        payment_intent: note.trim() || "Payment",
+-        amount: parseFloat(amount),
+-        currency,
+-        chain,
+-      })
+-      setCurrentPayment(payment)
+-
+-      // Bypass Security Review and PIN for demo flow
+-      if (payment.state === "AWAITING_CONFIRMATION") {
+-        await confirmPayment(payment.payment_id)
+-      }
+-      
+-      const executed = await executePayment(payment.payment_id)
+-      
+-      if (executed && executed.state === "SETTLED") {
+-        setCurrentPayment(executed)
+-        setView("done")
+-        return
+-      }
+-
+-      const pollInterval = setInterval(async () => {
+-        try {
+-          const status = await getPaymentStatus(payment.payment_id)
+-          if (status.state === "SETTLED") { 
+-            clearInterval(pollInterval)
+-            setCurrentPayment(prev => prev ? { ...prev, state: status.state } : null)
+-            setView("done") 
+-          }
+-          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { 
+-            clearInterval(pollInterval)
+-            setToast({ msg: "Settlement failed on chain.", type: "error" }) 
+-          }
+-        } catch { }
+-      }, 1500)
++      setView("done")
+     } catch (err: any) {
+       console.error("Payment execution error:", err)
+       setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
++    } finally {
++      setIsExecuting(false)
+     }
+   }, [activeUserId, recipient, amount, currency, note, fundingSource])
+ 
+   const handleRiskProceed = useCallback(async () => {
+     setShowRiskModal(false)
+-    if (!currentPayment) return
+-    try {
+-      await confirmPayment(currentPayment.payment_id)
+-      setShowPinModal(true)
+-    } catch { setToast({ msg: "Confirmation failed.", type: "error" }) }
++    setShowPinModal(true)
+   }, [currentPayment])
+ 
+   const handlePinSubmit = useCallback(async (pin: string) => {
+     setShowPinModal(false)
+-    if (!currentPayment) return
+     setIsExecuting(true); setExecutionStatus("Signing & Broadcasting...")
+     try {
+-      await executePayment(currentPayment.payment_id)
++      await new Promise(r => setTimeout(r, 1500))
+       setExecutionStatus("Awaiting Settlement...")
+-      const pollInterval = setInterval(async () => {
+-        try {
+-          const status = await getPaymentStatus(currentPayment.payment_id)
+-          if (status.state === "SETTLED") { clearInterval(pollInterval); setIsExecuting(false); setView("done") }
+-          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { clearInterval(pollInterval); setIsExecuting(false); setToast({ msg: "Settlement failed.", type: "error" }) }
+-        } catch { }
+-      }, 2000)
++      await new Promise(r => setTimeout(r, 1500))
++      setIsExecuting(false)
++      setView("done")
+     } catch { setIsExecuting(false); setToast({ msg: "Execution failed.", type: "error" }) }
+   }, [currentPayment])
+ 
+
+commit 4e89d57f32b66180536b46aac4d50454421f616c
+Author: Darsh Ohri <DARSH.OHRI061@nmims.in>
+Date:   Sat Sep 19 23:50:56 2026 +0530
+
+    fix: replace deleted ZiroTicket component with inline success message
+
+diff --git a/frontend/src/app/dashboard/transfers/page.tsx b/frontend/src/app/dashboard/transfers/page.tsx
+index 4eb603f..d80f2d4 100644
+--- a/frontend/src/app/dashboard/transfers/page.tsx
++++ b/frontend/src/app/dashboard/transfers/page.tsx
+@@ -18,7 +18,6 @@ import type {
+ } from "@/lib/api"
+ import Link from "next/link"
+ import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
+-import { ZiroTicket } from "@/components/ui/ticket-confirmation-card"
+ 
+ // ─── Constants ───────────────────────────────────────────────
+ const CONTACTS = [
+@@ -659,15 +658,27 @@ export default function TransfersPage() {
+             transition={{ type: "spring", stiffness: 200, damping: 20 }}
+             className="flex items-center justify-center"
+           >
+-            <ZiroTicket
+-              paymentId={currentPayment?.payment_id || "ZR-" + Date.now()}
+-              amount={totalAmount}
+-              fees={feesAmount}
+-              currency={currency}
+-              recipient={recipient}
+-              fundingSource={fundingSource.name}
+-              onDone={reset}
+-            />
++            <div className="flex flex-col items-center justify-center py-12 gap-6 text-center bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/50 p-8 sm:p-12 w-full max-w-lg mx-auto relative overflow-hidden">
++              <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 pointer-events-none -z-10" />
++              
++              <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center shadow-inner mb-2 ring-8 ring-white/50">
++                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
++                  <polyline points="20 6 9 17 4 12"/>
++                </svg>
++              </div>
++              
++              <div className="space-y-2">
++                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Transfer Sent!</h2>
++                <p className="text-slate-500 font-medium text-base">Your payment is successfully moving through the network.</p>
++              </div>
++              
++              <button 
++                onClick={reset} 
++                className="mt-6 w-full bg-slate-900 hover:bg-black text-white font-bold text-lg px-8 py-4 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1"
++              >
++                Send Another
++              </button>
++            </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
+
+commit 1b7f7a75655ffc118e51f9037bead57994690fff
+Author: Darsh Ohri <DARSH.OHRI061@nmims.in>
+Date:   Sat Sep 19 23:40:33 2026 +0530
+
+    Keep local send money UI while integrating upstream changes
+
+diff --git a/frontend/src/app/dashboard/transfers/page.tsx b/frontend/src/app/dashboard/transfers/page.tsx
+index 938963b..4eb603f 100644
+--- a/frontend/src/app/dashboard/transfers/page.tsx
++++ b/frontend/src/app/dashboard/transfers/page.tsx
+@@ -1,505 +1,676 @@
+ "use client"
+ 
+-import { useState, useCallback } from "react"
++import { useState, useCallback, useEffect } from "react"
+ import { motion, AnimatePresence } from "framer-motion"
+ import { useAuth } from "@/lib/AuthContext"
+-import { checkRecipient, analyzeRisk, compareRoutes } from "@/lib/api"
+-import type { RecipientCheckResponse, RiskAnalysisResponse, RouteOption } from "@/lib/api"
++import {
++  checkRecipient,
++  compareRoutes,
++  createPayment,
++  confirmPayment,
++  executePayment,
++  getPaymentStatus
++} from "@/lib/api"
++import type {
++  RecipientCheckResponse,
++  RouteOption,
++  PaymentRecord
++} from "@/lib/api"
+ import Link from "next/link"
++import { TransactionConfirmCard } from "@/components/ui/transaction-confirm-card"
++import { ZiroTicket } from "@/components/ui/ticket-confirmation-card"
++
++// ─── Constants ───────────────────────────────────────────────
++const CONTACTS = [
++  { id: 1, handle: "@parteek", name: "Parteek", img: "https://i.pravatar.cc/150?img=11" },
++  { id: 2, handle: "@alex", name: "Alex", img: "https://i.pravatar.cc/150?img=12" },
++  { id: 3, handle: "@sarah", name: "Sarah", img: "https://i.pravatar.cc/150?img=5" },
++  { id: 4, handle: "@jordan", name: "Jordan", img: "https://i.pravatar.cc/150?img=33" }
++]
++
++const FUNDING_SOURCES = [
++  { 
++    id: "vault", 
++    name: "ZIROVAULT", 
++    holder: "OLIVIA RHYE",
++    cardNumber: "1234 1234 1234 1234",
++    expiry: "06/28",
++    balance: "$42,504.80", 
++    cssClass: "card-purple"
++  },
++  { 
++    id: "card", 
++    name: "ZIROCARD", 
++    holder: "ZAHRA MOHAMADI",
++    cardNumber: "1253 5432 3521 3090",
++    expiry: "09/30",
++    balance: "Credit", 
++    cssClass: "card-blue"
++  }
++]
++
++const CURRENCIES = ["USD", "EUR", "GBP", "USDC"]
++const CURRENCY_SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" }
++
++// ─── Types ───────────────────────────────────────────────────
++type PageView = "wallet" | "form" | "confirm" | "done"
++type RecipientState = "idle" | "safe" | "warning" | "blocked"
+ 
+ // ─── Toast ───────────────────────────────────────────────────
+ function Toast({ message, type, onDismiss }: { message: string; type: "error" | "warning" | "info"; onDismiss: () => void }) {
+   const colors = {
+-    error:   "bg-red-50 border-red-200 text-red-800",
++    error: "bg-red-50 border-red-200 text-red-800",
+     warning: "bg-amber-50 border-amber-200 text-amber-800",
+-    info:    "bg-blue-50 border-blue-200 text-blue-700",
++    info: "bg-blue-50 border-blue-200 text-blue-700",
+   }
+   return (
+     <motion.div
+-      initial={{ opacity: 0, y: -12 }}
+-      animate={{ opacity: 1, y: 0 }}
+-      exit={{ opacity: 0, y: -12 }}
+-      className={`fixed top-6 right-6 z-50 max-w-sm rounded-2xl border px-5 py-4 shadow-lg ${colors[type]}`}
++      initial={{ opacity: 0, y: -12, scale: 0.9 }}
++      animate={{ opacity: 1, y: 0, scale: 1 }}
++      exit={{ opacity: 0, y: -12, scale: 0.9 }}
++      transition={{ type: "spring", stiffness: 300, damping: 25 }}
++      className={`fixed top-6 right-6 z-50 max-w-sm rounded-2xl border px-5 py-4 shadow-lg backdrop-blur-md ${colors[type]}`}
+     >
+       <div className="flex items-start gap-3">
+         <div className="text-sm font-semibold leading-relaxed flex-1">{message}</div>
+         <button onClick={onDismiss} className="opacity-50 hover:opacity-100 transition-opacity mt-0.5">
+-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+-          </svg>
++          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+         </button>
+       </div>
+     </motion.div>
+   )
+ }
+ 
+-// ─── Risk Modal ───────────────────────────────────────────────
++// ─── Risk Modal ──────────────────────────────────────────────
+ function RiskModal({ warnings, onClose, onProceed }: { warnings: string[]; onClose: () => void; onProceed: () => void }) {
+   const [confirmed, setConfirmed] = useState(false)
+   return (
+-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+-      <motion.div
+-        initial={{ opacity: 0, scale: 0.95 }}
+-        animate={{ opacity: 1, scale: 1 }}
+-        className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-white/60 shadow-xl p-8 max-w-md w-full mx-4"
+-      >
+-        <div className="flex items-center gap-3 mb-5">
+-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600">
+-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+-            </svg>
+-          </div>
+-          <div>
+-            <div className="text-slate-800 font-bold">Medium Risk Detected</div>
+-            <div className="text-xs text-slate-500 font-medium">Please review before proceeding</div>
++    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl">
++      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="bg-white/95 backdrop-blur-3xl rounded-[32px] border border-white/60 shadow-2xl p-8 max-w-md w-full mx-4">
++        <div className="flex flex-col items-center text-center mb-6">
++          <div className="w-16 h-16 rounded-full bg-amber-100/50 flex items-center justify-center mb-4">
++            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+           </div>
++          <div className="text-slate-900 font-bold text-2xl tracking-tight mb-1">Security Review</div>
++          <div className="text-sm text-slate-500 font-medium">AI Firewall paused this transaction</div>
+         </div>
+-
+-        <div className="space-y-2 mb-6">
+-          {warnings.map((w, i) => (
+-            <div key={i} className="flex items-start gap-2 text-sm text-slate-700">
+-              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+-              {w}
+-            </div>
+-          ))}
++        <div className="space-y-3 mb-8 bg-amber-50/80 p-5 rounded-2xl border border-amber-100">
++          {warnings.length > 0 ? warnings.map((w, i) => (
++            <div key={i} className="flex items-start gap-3 text-sm text-amber-900 font-medium"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />{w}</div>
++          )) : <div className="text-sm text-amber-900 font-medium">Suspicious activity detected.</div>}
+         </div>
+-
+-        <label className="flex items-center gap-3 mb-6 cursor-pointer">
+-          <input
+-            type="checkbox"
+-            checked={confirmed}
+-            onChange={(e) => setConfirmed(e.target.checked)}
+-            className="w-4 h-4 rounded accent-slate-800"
+-          />
+-          <span className="text-sm text-slate-700 font-medium">I understand the risks and want to proceed</span>
++        <label className="flex items-center gap-3 mb-8 cursor-pointer group">
++          <div className="relative flex items-center justify-center">
++            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="peer appearance-none w-6 h-6 rounded-lg border-2 border-slate-300 checked:bg-slate-900 checked:border-slate-900 transition-colors cursor-pointer" />
++            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="absolute pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"><polyline points="20 6 9 17 4 12" /></svg>
++          </div>
++          <span className="text-sm text-slate-700 font-bold group-hover:text-slate-900 transition-colors">I understand the risks, proceed</span>
+         </label>
+-
+         <div className="flex gap-3">
+-          <button onClick={onClose} className="flex-1 bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors">
+-            Cancel
+-          </button>
+-          <button
+-            disabled={!confirmed}
+-            onClick={onProceed}
+-            className="flex-1 bg-slate-800 hover:bg-black disabled:opacity-30 text-white font-semibold text-sm px-5 py-2.5 rounded-full transition-colors"
+-          >
+-            Proceed Anyway
+-          </button>
++          <button onClick={onClose} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-base px-5 py-4 rounded-2xl transition-colors">Cancel</button>
++          <button disabled={!confirmed} onClick={onProceed} className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-30 text-white font-bold text-base px-5 py-4 rounded-2xl transition-all shadow-md">Confirm</button>
+         </div>
+       </motion.div>
+     </div>
+   )
+ }
+ 
+-// ─── Main page ───────────────────────────────────────────────
+-type Step = "form" | "checking" | "route" | "done"
+-type RecipientState = "idle" | "safe" | "warning" | "blocked"
++// ─── PIN Modal ───────────────────────────────────────────────
++function PinModal({ onSubmit, onCancel }: { onSubmit: (pin: string) => void; onCancel: () => void }) {
++  const [pin, setPin] = useState("")
++  return (
++    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xl">
++      <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="bg-white/95 backdrop-blur-3xl rounded-[32px] border border-white/60 shadow-2xl p-8 max-w-sm w-full mx-4">
++        <div className="text-center mb-8">
++          <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
++            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-900"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
++          </div>
++          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Enter PIN</h3>
++          <p className="text-sm text-slate-500 mt-1 font-medium">Authorize your transaction</p>
++        </div>
++        <input type="password" maxLength={4} autoFocus value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} className="w-full text-center tracking-[1em] font-mono text-4xl bg-slate-50/50 border border-slate-200 rounded-3xl py-6 focus:outline-none focus:border-slate-900 focus:ring-4 focus:ring-slate-900/10 transition-all mb-8 shadow-inner" />
++        <div className="flex gap-3">
++          <button onClick={onCancel} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-base px-5 py-4 rounded-2xl transition-colors">Cancel</button>
++          <button disabled={pin.length < 4} onClick={() => onSubmit(pin)} className="flex-1 bg-slate-900 hover:bg-black disabled:opacity-30 text-white font-bold text-base px-5 py-4 rounded-2xl transition-all shadow-md">Authorize</button>
++        </div>
++      </motion.div>
++    </div>
++  )
++}
+ 
++// ═════════════════════════════════════════════════════════════
++// MAIN PAGE
++// ═════════════════════════════════════════════════════════════
+ export default function TransfersPage() {
+   const { user } = useAuth()
++  const activeUserId = user?.uid || "demo-user-123"
+ 
+-  const [recipient, setRecipient]   = useState("")
+-  const [amount, setAmount]         = useState("")
+-  const [currency, setCurrency]     = useState("USD")
+-  const [note, setNote]             = useState("")
+-
+-  const [step, setStep]             = useState<Step>("form")
+-  const [recipientState, setRecipientState] = useState<RecipientState>("idle")
++  const [view, setView] = useState<PageView>("wallet")
++  const [fundingSource, setFundingSource] = useState(FUNDING_SOURCES[0])
+ 
+-  const [toast, setToast]   = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
+-  const [cardDanger, setCardDanger] = useState(false)
++  const [recipient, setRecipient] = useState("")
++  const [amount, setAmount] = useState("")
++  const [currency, setCurrency] = useState("USD")
++  const [note, setNote] = useState("")
++  const [isRecurring, setIsRecurring] = useState(false)
+ 
++  const [recipientState, setRecipientState] = useState<RecipientState>("idle")
++  const [toast, setToast] = useState<{ msg: string; type: "error" | "warning" | "info" } | null>(null)
++  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
+   const [showRiskModal, setShowRiskModal] = useState(false)
+-  const [riskWarnings, setRiskWarnings]   = useState<string[]>([])
++  const [riskWarnings, setRiskWarnings] = useState<string[]>([])
++  const [showPinModal, setShowPinModal] = useState(false)
++  const [isExecuting, setIsExecuting] = useState(false)
++  const [executionStatus, setExecutionStatus] = useState("")
+ 
+   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null)
+-  const [allRoutes, setAllRoutes]         = useState<RouteOption[]>([])
+-
+-  const [sending, setSending] = useState(false)
++  const [currentPayment, setCurrentPayment] = useState<PaymentRecord | null>(null)
+   const [checkingRecipient, setCheckingRecipient] = useState(false)
+ 
+   const dismissToast = () => setToast(null)
++  const currencySymbol = CURRENCY_SYMBOLS[currency] ?? ""
++
++  // Auto-fetch route when amount changes
++  useEffect(() => {
++    const amt = parseFloat(amount)
++    if (!amt || amt <= 0) { setSelectedRoute(null); return }
++    const timer = setTimeout(async () => {
++      try {
++        const routesRes = await compareRoutes({ amount: amt, currency, destination_country: "US", preference: "lowest_cost" })
++        const blockchain = routesRes.routes.find((r) => r.route === "BLOCKCHAIN") || routesRes.routes[0]
++        setSelectedRoute(blockchain || null)
++      } catch {
++        setSelectedRoute({ route: "BLOCKCHAIN", estimated_time_seconds: 2.1, estimated_fee: 0, fee_currency: currency })
++      }
++    }, 500)
++    return () => clearTimeout(timer)
++  }, [amount, currency])
+ 
+-  // Step 1: Recipient check (on blur)
+-  const handleRecipientBlur = useCallback(async () => {
+-    if (!recipient.trim() || !user) return
+-    setCheckingRecipient(true)
+-    setRecipientState("idle")
+-    try {
+-      const res: RecipientCheckResponse = await checkRecipient(recipient.trim(), user.uid)
+-      if (res.status === "BLOCKED") {
+-        setRecipientState("blocked")
+-        setToast({
+-          msg: `WARNING: This address is suspiciously similar to a saved contact. This resembles an Address Poisoning attack.`,
+-          type: "error",
+-        })
+-      } else if (res.status === "WARNING") {
+-        setRecipientState("warning")
+-        setToast({
+-          msg: `Note: You have never sent money to this address before. Please double-check.`,
+-          type: "warning",
+-        })
+-      } else {
+-        setRecipientState("safe")
++  // Remove scrolling for the Confirmation Card and the Wallet view
++  useEffect(() => {
++    if (view === "confirm" || view === "wallet") {
++      const scrollParent = document.querySelector(".custom-scrollbar");
++      if (scrollParent) {
++        scrollParent.classList.add("overflow-hidden");
++        scrollParent.classList.remove("overflow-y-auto");
+       }
+-    } catch {
+-      // Non-blocking — if API is down, allow user to continue
+-      setRecipientState("idle")
+-    } finally {
+-      setCheckingRecipient(false)
++      return () => {
++        if (scrollParent) {
++          scrollParent.classList.remove("overflow-hidden");
++          scrollParent.classList.add("overflow-y-auto");
++        }
++      };
+     }
+-  }, [recipient, user])
+-
+-  // Step 2 + 3: Full send flow
+-  const handleSend = useCallback(async () => {
+-    if (!user || !recipient.trim() || !amount || recipientState === "blocked") return
+-
+-    setStep("checking")
+-    setCardDanger(false)
++  }, [view]);
+ 
++  const handleRecipientBlur = useCallback(async () => {
++    if (!recipient.trim()) return
++    setCheckingRecipient(true); setRecipientState("idle")
++    try {
++      const res: RecipientCheckResponse = await checkRecipient(recipient.trim(), activeUserId)
++      if (res.status === "BLOCKED") { setRecipientState("blocked"); setToast({ msg: "WARNING: Possible Address Poisoning detected.", type: "error" }) }
++      else if (res.status === "WARNING") { setRecipientState("warning") }
++      else { setRecipientState("safe") }
++    } catch { setRecipientState("idle") }
++    finally { setCheckingRecipient(false) }
++  }, [recipient, activeUserId])
++
++  // "Continue" just validates and goes to the confirm card — NO API call
++  const handleContinue = useCallback(() => {
++    if (!amount || !recipient.trim() || recipientState === "blocked") return
++    setView("confirm")
++  }, [amount, recipient, recipientState])
++
++  // "Confirm & Send" on the confirmation card calls the real API
++  const handleConfirmSend = useCallback(async () => {
+     try {
+-      // ── Step 2: AI Risk Firewall ───────────────────────────
+-      const riskRes: RiskAnalysisResponse = await analyzeRisk({
+-        recipient: recipient.trim(),
++      // Use simulation chain for testing to prevent strict address format blocking
++      const chain = "simulation"
++      const uid = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)
++      
++      // Ensure sender and recipient meet address format requirements
++      const recipientAddress = recipient.trim().startsWith("@") || recipient.trim().length >= 10 ? recipient.trim() : `@${recipient.trim()}`
++      const senderAddress = fundingSource.id.startsWith("ziro_") ? fundingSource.id : `ziro_wallet_${fundingSource.id}`
++
++      const payment = await createPayment({
++        idempotency_key: uid,
++        user_id: activeUserId,
++        recipient_address: recipientAddress,
++        sender_address: senderAddress,
++        payment_intent: note.trim() || "Payment",
+         amount: parseFloat(amount),
+         currency,
+-        note,
+-        user_id: user.uid,
++        chain,
+       })
++      setCurrentPayment(payment)
+ 
+-      if (riskRes.risk_level === "HIGH") {
+-        setCardDanger(true)
+-        setToast({
+-          msg: riskRes.warnings.length > 0 ? riskRes.warnings[0] : "High-risk transaction blocked by AI Firewall.",
+-          type: "error",
+-        })
+-        setStep("form")
+-        return
++      // Bypass Security Review and PIN for demo flow
++      if (payment.state === "AWAITING_CONFIRMATION") {
++        await confirmPayment(payment.payment_id)
+       }
+-
+-      if (riskRes.risk_level === "MEDIUM") {
+-        setRiskWarnings(riskRes.warnings)
+-        setShowRiskModal(true)
+-        setStep("form")
++      
++      const executed = await executePayment(payment.payment_id)
++      
++      if (executed && executed.state === "SETTLED") {
++        setCurrentPayment(executed)
++        setView("done")
+         return
+       }
+ 
+-      // ── Step 3: Route Comparison ───────────────────────────
+-      await proceedToRoutes()
+-
+-    } catch {
+-      // If API is unavailable, skip firewall and go to routes
+-      await proceedToRoutes()
++      const pollInterval = setInterval(async () => {
++        try {
++          const status = await getPaymentStatus(payment.payment_id)
++          if (status.state === "SETTLED") { 
++            clearInterval(pollInterval)
++            setCurrentPayment(prev => prev ? { ...prev, state: status.state } : null)
++            setView("done") 
++          }
++          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { 
++            clearInterval(pollInterval)
++            setToast({ msg: "Settlement failed on chain.", type: "error" }) 
++          }
++        } catch { }
++      }, 1500)
++    } catch (err: any) {
++      console.error("Payment execution error:", err)
++      setToast({ msg: err?.message || "Failed to process payment.", type: "error" })
+     }
+-  }, [user, recipient, amount, currency, note, recipientState])
++  }, [activeUserId, recipient, amount, currency, note, fundingSource])
+ 
+-  const proceedToRoutes = useCallback(async () => {
+-    setStep("checking")
++  const handleRiskProceed = useCallback(async () => {
++    setShowRiskModal(false)
++    if (!currentPayment) return
+     try {
+-      const routesRes = await compareRoutes({
+-        amount: parseFloat(amount) || 100,
+-        currency,
+-        destination_country: "US",
+-        preference: "lowest_cost",
+-      })
+-      setAllRoutes(routesRes.routes)
+-      const blockchain = routesRes.routes.find((r) => r.route === "BLOCKCHAIN") || routesRes.routes[0]
+-      setSelectedRoute(blockchain || null)
+-    } catch {
+-      // Fallback route if API down
+-      setSelectedRoute({ route: "BLOCKCHAIN", estimated_time_seconds: 2.1, estimated_fee: 0.5, fee_currency: "USDC" })
+-    }
+-    setStep("route")
+-  }, [amount, currency])
+-
+-  const confirmSend = useCallback(async () => {
+-    setSending(true)
+-    // Simulate the actual payment submission
+-    await new Promise((r) => setTimeout(r, 1500))
+-    setSending(false)
+-    setStep("done")
+-  }, [])
++      await confirmPayment(currentPayment.payment_id)
++      setShowPinModal(true)
++    } catch { setToast({ msg: "Confirmation failed.", type: "error" }) }
++  }, [currentPayment])
++
++  const handlePinSubmit = useCallback(async (pin: string) => {
++    setShowPinModal(false)
++    if (!currentPayment) return
++    setIsExecuting(true); setExecutionStatus("Signing & Broadcasting...")
++    try {
++      await executePayment(currentPayment.payment_id)
++      setExecutionStatus("Awaiting Settlement...")
++      const pollInterval = setInterval(async () => {
++        try {
++          const status = await getPaymentStatus(currentPayment.payment_id)
++          if (status.state === "SETTLED") { clearInterval(pollInterval); setIsExecuting(false); setView("done") }
++          else if (status.state === "BROADCAST_FAILED" || status.state === "CONFIRMATION_FAILED") { clearInterval(pollInterval); setIsExecuting(false); setToast({ msg: "Settlement failed.", type: "error" }) }
++        } catch { }
++      }, 2000)
++    } catch { setIsExecuting(false); setToast({ msg: "Execution failed.", type: "error" }) }
++  }, [currentPayment])
+ 
+   const reset = () => {
+     setRecipient(""); setAmount(""); setNote(""); setCurrency("USD")
+-    setStep("form"); setRecipientState("idle"); setCardDanger(false)
+-    setSelectedRoute(null); setAllRoutes([])
++    setView("wallet"); setRecipientState("idle")
++    setSelectedRoute(null); setCurrentPayment(null)
++    setIsRecurring(false); setIsExecuting(false); setExecutionStatus("")
+   }
+ 
+-  const recipientBorderClass =
+-    recipientState === "blocked" ? "border-red-400 bg-red-50/50 focus:border-red-500" :
+-    recipientState === "warning" ? "border-amber-400 bg-amber-50/50 focus:border-amber-500" :
+-    recipientState === "safe"    ? "border-emerald-400 bg-emerald-50/30 focus:border-emerald-500" :
+-    "border-white/40 focus:border-[#4a72ff]"
++  const totalAmount = parseFloat(amount) || 0
++  const feesAmount = totalAmount * 0.002
++  const arrivalTime = selectedRoute?.estimated_time_seconds || 2.1
+ 
+   return (
+-    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8">
+-
++    <div className={`w-full flex flex-col items-center justify-center px-4 relative select-none ${view === "confirm" ? "h-full py-2 overflow-hidden" : "min-h-[85vh] py-8"}`}>
++      {/* Wallet CSS — properly scoped, cards stay BELOW title */}
++      <style dangerouslySetInnerHTML={{ __html: `
++        .ziro-wallet {
++          position: relative; width: 330px; height: 320px;
++          cursor: default; perspective: 1000px;
++          display: flex; justify-content: center; align-items: flex-end;
++          transition: transform 0.4s ease;
++          margin-top: 16px;
++        }
++        .ziro-wallet-back {
++          position: absolute; bottom: 0; width: 320px; height: 260px;
++          background: #0a0a0a; /* Black back */
++          border-radius: 22px 22px 60px 60px; z-index: 5;
++          box-shadow: inset 0 25px 35px rgba(0,0,0,0.5), inset 0 5px 15px rgba(0,0,0,0.8), 0 20px 60px rgba(0,0,0,0.25);
++        }
++        .ziro-card {
++          position: absolute; width: 290px; height: 175px; left: 20px;
++          border-radius: 14px; padding: 0; color: white;
++          background: #222222;
++          box-shadow: 0 -8px 20px rgba(0,0,0,0.4);
++          transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1), z-index 0s, box-shadow 0.3s;
++          cursor: pointer; user-select: none;
++          overflow: hidden;
++        }
++        .ziro-card > div {
++          position: relative; z-index: 10;
++        }
++        
++        .card-purple {
++          bottom: 120px; z-index: 20;
++          transform: translateY(0) rotate(-6deg);
++        }
++        .card-purple::before {
++          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
++          background: #bc9ff5; pointer-events: none; z-index: 0;
++        }
++
++        .card-blue {
++          bottom: 75px; z-index: 30;
++          transform: translateY(0) rotate(-2deg);
++        }
++        .card-blue::before {
++          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
++          background: #2e9dfa; pointer-events: none; z-index: 0;
++        }
++
++        .ziro-pocket {
++          position: absolute; bottom: 0; width: 320px; height: 140px; z-index: 40;
++          background: #141414; /* Black leather */
++          border-radius: 18px 18px 60px 60px;
++          filter: drop-shadow(0 -5px 15px rgba(0,0,0,0.4));
++          box-shadow: inset 0 3px 12px rgba(255,255,255,0.06);
++          border-top: 1.5px solid #282828;
++        }
++        /* Leather Stitched edges */
++        .ziro-pocket::before {
++          content: ''; position: absolute; top: 12px; left: 14px; right: 14px; bottom: 18px;
++          border: 1.5px dashed rgba(255, 255, 255, 0.15);
++          border-radius: 10px 10px 50px 50px;
++          pointer-events: none;
++        }
++        .ziro-pocket-content {
++          position: absolute; top: 35px; width: 100%; text-align: center; z-index: 50;
++          display: flex; flex-direction: column; align-items: center; gap: 4px;
++        }
++        .ziro-balance-real {
++          color: #ffffff; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;
++          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
++        }
++        .ziro-balance-label {
++          color: #888888; font-size: 13px; font-weight: 600;
++        }
++
++        /* ── Hover: pop cards out prominently ── */
++        .ziro-wallet:hover { transform: translateY(-5px); }
++        .ziro-wallet:hover .card-purple { transform: translateY(-40px) rotate(-8deg); }
++        .ziro-wallet:hover .card-blue { transform: translateY(-10px) rotate(-1deg); }
++
++        /* Individual card hover — lifts card out prominently */
++        .ziro-card:hover { z-index: 100 !important; }
++        .ziro-wallet:hover .card-purple:hover { transform: translateY(-55px) scale(1.05) rotate(0); box-shadow: 0 0 0 2px #bc9ff5, 0 15px 45px rgba(188,159,245,0.3); }
++        .ziro-wallet:hover .card-blue:hover { transform: translateY(-30px) scale(1.05) rotate(0); box-shadow: 0 0 0 2px #2e9dfa, 0 15px 45px rgba(46,157,250,0.3); }
++      `}} />
++
++      <AnimatePresence>{toast && <Toast message={toast.msg} type={toast.type} onDismiss={dismissToast} />}</AnimatePresence>
++      <AnimatePresence>{showRiskModal && <RiskModal warnings={riskWarnings} onClose={() => setShowRiskModal(false)} onProceed={handleRiskProceed} />}</AnimatePresence>
++      <AnimatePresence>{showPinModal && <PinModal onSubmit={handlePinSubmit} onCancel={() => setShowPinModal(false)} />}</AnimatePresence>
++
++      {/* Executing Overlay */}
+       <AnimatePresence>
+-        {toast && <Toast message={toast.msg} type={toast.type} onDismiss={dismissToast} />}
+-      </AnimatePresence>
+-
+-      <AnimatePresence>
+-        {showRiskModal && (
+-          <RiskModal
+-            warnings={riskWarnings}
+-            onClose={() => setShowRiskModal(false)}
+-            onProceed={() => { setShowRiskModal(false); proceedToRoutes() }}
+-          />
++        {isExecuting && (
++          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-md">
++            <div className="flex flex-col items-center gap-4 bg-white/10 backdrop-blur-xl rounded-3xl p-10 border border-white/10">
++              <div className="w-12 h-12 rounded-full border-[3px] border-white/20 border-t-white animate-spin" />
++              <div className="text-white font-bold text-lg tracking-wide">{executionStatus}</div>
++            </div>
++          </motion.div>
+         )}
+       </AnimatePresence>
+ 
+-      {/* Header */}
+-      <div className="flex items-center justify-between mb-8">
+-        <div>
+-          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-bold tracking-tight text-slate-800 mb-2">
+-            Send Money
+-          </motion.h1>
+-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-sm font-medium text-slate-500">
+-            Secured by Ziro&apos;s AI firewall — every transfer is screened before it moves.
+-          </motion.p>
+-        </div>
+-        <Link href="/dashboard" className="bg-white/50 hover:bg-white/80 border border-white/40 text-slate-700 font-semibold text-sm px-5 py-2.5 rounded-full transition-colors shadow-sm">
+-          ← Back
+-        </Link>
+-      </div>
++      {/* ═══════════════════════════════════════════════════════ */}
++      {/* VIEW: WALLET                                           */}
++      {/* ═══════════════════════════════════════════════════════ */}
++      <AnimatePresence mode="wait">
++        {view === "wallet" && (
++          <motion.div
++            key="wallet-view"
++            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
++            transition={{ type: "spring", stiffness: 200, damping: 20 }}
++            className="flex flex-col items-center gap-6"
++          >
++            <div className="text-center relative z-50">
++              <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Send Money</h1>
++              <p className="text-slate-500 font-medium text-sm">Select a payment source to continue</p>
++            </div>
+ 
+-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+-
+-        {/* ── Send Form ──────────────────────────────────────── */}
+-        <motion.div
+-          initial={{ opacity: 0, y: 20 }}
+-          animate={{ opacity: 1, y: 0 }}
+-          transition={{ duration: 0.4, delay: 0.15 }}
+-          className={`lg:col-span-2 bg-white/60 backdrop-blur-md rounded-[28px] border shadow-sm p-8 transition-colors duration-500 ${cardDanger ? "border-red-300 bg-red-50/30" : "border-white/50"}`}
+-        >
+-          {step === "done" ? (
+-            <div className="flex flex-col items-center justify-center py-16 gap-6 text-center">
+-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600">
+-                  <polyline points="20 6 9 17 4 12"/>
+-                </svg>
+-              </div>
+-              <div>
+-                <div className="text-2xl font-bold text-slate-800 mb-1">Transfer Sent!</div>
+-                <div className="text-slate-500 text-sm font-medium">Your payment is moving through the network.</div>
++            <div className="ziro-wallet">
++              <div className="ziro-wallet-back" />
++              {FUNDING_SOURCES.map((source, idx) => (
++                <div
++                  key={source.id}
++                  className={`ziro-card ${source.cssClass}`}
++                  onClick={() => { setFundingSource(source); setView("form") }}
++                >
++                  <div className="flex flex-col justify-between h-full p-5 pointer-events-none">
++                    <div className="flex justify-between items-start">
++                      <div className="flex items-baseline gap-1">
++                        <div className="font-black text-2xl tracking-tighter italic text-white drop-shadow-sm">ZIRO</div>
++                        <div className="text-[10px] font-bold tracking-widest text-white/80 uppercase mb-[2px]">{source.id}</div>
++                      </div>
++                      {source.id === "vault" ? (
++                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
++                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
++                        </svg>
++                      ) : (
++                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
++                          <rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line>
++                        </svg>
++                      )}
++                    </div>
++                    
++                    <div className="flex flex-col gap-1 mt-auto">
++                      <div className="flex justify-end items-end">
++                        <div className="text-[10px] font-bold text-white/60 tracking-wider uppercase">{source.expiry}</div>
++                      </div>
++                      <div className="flex justify-between items-center mt-0.5">
++                        <div className="font-mono text-base font-bold tracking-[1.5px] whitespace-pre">
++                          ••••  ••••  ••••  {source.cardNumber.slice(-4)}
++                        </div>
++                      </div>
++                    </div>
++                  </div>
++                </div>
++              ))}
++              
++              <div className="ziro-pocket">
++                <div className="ziro-pocket-content">
++                  <div className="ziro-balance-real">$12,450.00</div>
++                  <div className="ziro-balance-label">Total Balance</div>
++                </div>
+               </div>
+-              <button onClick={reset} className="bg-slate-800 hover:bg-black text-white font-semibold text-sm px-6 py-3 rounded-full transition-colors">
+-                Send Another
+-              </button>
+             </div>
+-          ) : (
++
++            <p className="text-xs text-slate-400 font-medium italic">Hover to preview — Click a card to pay from it</p>
++            <Link href="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors mt-2">← Back to Dashboard</Link>
++          </motion.div>
++        )}
++
++        {/* ═══════════════════════════════════════════════════════ */}
++        {/* VIEW: FORM                                              */}
++        {/* ═══════════════════════════════════════════════════════ */}
++        {view === "form" && (
++          <motion.div
++            key="form-view"
++            initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
++            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
++            exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
++            transition={{ type: "spring", stiffness: 200, damping: 20 }}
++            className="w-full max-w-lg bg-white/70 backdrop-blur-3xl rounded-[40px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/50 p-8 sm:p-10 relative overflow-visible"
++          >
++            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-emerald-50/30 pointer-events-none -z-10 rounded-[40px]" />
++
+             <div className="space-y-6">
+-              <h2 className="text-slate-800 font-bold text-lg">Transfer Details</h2>
++              {/* Header */}
++              <div className="flex justify-between items-center relative z-20">
++                <button onClick={() => setView("wallet")} className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100 hover:scale-105 transition-transform">
++                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-700"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
++                </button>
++                <div className="px-4 py-2 bg-slate-100 rounded-full">
++                  <span className="text-xs font-bold text-slate-600">From: {fundingSource.name}</span>
++                </div>
++              </div>
+ 
+-              {/* Recipient */}
+-              <div>
+-                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 block">Recipient Address or Username</label>
+-                <div className="relative">
++              {/* Amount — uses correct currency symbol */}
++              <div className="text-center relative pt-4 pb-2">
++                <div className="flex items-center justify-center gap-2">
+                   <input
+-                    type="text"
+-                    value={recipient}
+-                    onChange={(e) => { setRecipient(e.target.value); setRecipientState("idle") }}
+-                    onBlur={handleRecipientBlur}
+-                    placeholder="@username or 0x..."
+-                    className={`w-full bg-white/50 border rounded-2xl px-4 py-3.5 text-slate-800 placeholder:text-slate-400 font-medium focus:outline-none transition-colors text-sm ${recipientBorderClass}`}
++                    type="text" inputMode="decimal"
++                    value={amount ? `${currencySymbol}${amount}${currency === "USDC" ? " USDC" : ""}` : ""}
++                    onChange={(e) => {
++                      let val = e.target.value.replace(/[^0-9.]/g, '');
++                      const parts = val.split('.'); if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
++                      if (val.length > 10) val = val.slice(0, 10);
++                      if (parseFloat(val) > 1000000) val = "1000000";
++                      setAmount(val);
++                    }}
++                    placeholder={`${currencySymbol}0`}
++                    className="w-full bg-transparent text-center text-6xl font-black text-slate-900 placeholder:text-slate-200 focus:outline-none transition-all"
+                   />
+-                  {checkingRecipient && (
+-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+-                      <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-slate-600 animate-spin" />
+-                    </div>
+-                  )}
+-                  {!checkingRecipient && recipientState === "safe" && (
+-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">
+-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-                        <polyline points="20 6 9 17 4 12"/>
+-                      </svg>
+-                    </div>
+-                  )}
+-                  {!checkingRecipient && recipientState === "warning" && (
+-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-500">
+-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+-                      </svg>
+-                    </div>
+-                  )}
+                 </div>
+-              </div>
+ 
+-              {/* Amount + Currency */}
+-              <div className="grid grid-cols-3 gap-4">
+-                <div className="col-span-2">
+-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 block">Amount</label>
++                {/* Currency Pill — positioned below amount, not overlapping */}
++                <div className="flex justify-center mt-4 relative z-30">
+                   <div className="relative">
+-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">$</span>
+-                    <input
+-                      type="number"
+-                      value={amount}
+-                      onChange={(e) => setAmount(e.target.value)}
+-                      placeholder="0.00"
+-                      className="w-full bg-white/50 border border-white/40 rounded-2xl pl-8 pr-4 py-3.5 text-slate-800 placeholder:text-slate-400 font-medium focus:outline-none focus:border-[#4a72ff] transition-colors text-sm"
+-                    />
++                    <button
++                      onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
++                      className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-2 shadow-sm hover:bg-slate-50 transition-colors"
++                    >
++                      <span className="text-sm font-bold text-slate-700">{currency}</span>
++                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`}><polyline points="6 9 12 15 18 9" /></svg>
++                    </button>
++                    <AnimatePresence>
++                      {showCurrencyDropdown && (
++                        <motion.div
++                          initial={{ opacity: 0, y: -8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.95 }}
++                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
++                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 min-w-[120px]"
++                        >
++                          {CURRENCIES.map(c => (
++                            <button
++                              key={c}
++                              onClick={() => { setCurrency(c); setShowCurrencyDropdown(false) }}
++                              className={`w-full px-4 py-3 text-left text-sm font-bold transition-colors ${c === currency ? 'bg-slate-100 text-[#4a72ff]' : 'text-slate-700 hover:bg-slate-50'}`}
++                            >
++                              {CURRENCY_SYMBOLS[c]}{CURRENCY_SYMBOLS[c] ? " " : ""}{c}
++                            </button>
++                          ))}
++                        </motion.div>
++                      )}
++                    </AnimatePresence>
+                   </div>
+                 </div>
+-                <div>
+-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 block">Currency</label>
+-                  <select
+-                    value={currency}
+-                    onChange={(e) => setCurrency(e.target.value)}
+-                    className="w-full bg-white/50 border border-white/40 rounded-2xl px-4 py-3.5 text-slate-800 font-medium focus:outline-none focus:border-[#4a72ff] transition-colors text-sm"
+-                  >
+-                    <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+-                    <option>MXN</option><option>KES</option><option>NGN</option>
+-                  </select>
+-                </div>
+               </div>
+ 
+-              {/* Note / Payment intent — required for AI firewall */}
+-              <div>
+-                <label className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2 block">Payment Note <span className="text-[#4a72ff] normal-case font-medium tracking-normal">(helps our AI protect you)</span></label>
+-                <input
+-                  type="text"
+-                  value={note}
+-                  onChange={(e) => setNote(e.target.value)}
+-                  placeholder="e.g. rent payment, school fees, freelance invoice..."
+-                  className="w-full bg-white/50 border border-white/40 rounded-2xl px-4 py-3.5 text-slate-800 placeholder:text-slate-400 font-medium focus:outline-none focus:border-[#4a72ff] transition-colors text-sm"
+-                />
+-              </div>
+-
+-              {/* Route Info (after comparison) */}
+-              {step === "route" && selectedRoute && (
+-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+-                  <label className="text-slate-500 text-xs font-bold uppercase tracking-widest block">Available Routes</label>
+-                  <div className="space-y-2">
+-                    {allRoutes.map((r) => (
+-                      <button
+-                        key={r.route}
+-                        onClick={() => setSelectedRoute(r)}
+-                        className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-colors text-left ${selectedRoute?.route === r.route ? "border-[#4a72ff] bg-[#4a72ff]/5" : "border-white/40 bg-white/30 hover:bg-white/50"}`}
+-                      >
+-                        <div>
+-                          <div className="text-sm font-bold text-slate-800">{r.route}</div>
+-                          <div className="text-xs text-slate-500 font-medium">Fee: {r.estimated_fee} {r.fee_currency}</div>
+-                        </div>
+-                        <div className="text-right">
+-                          <div className="text-sm font-bold text-slate-800">{r.estimated_time_seconds}s</div>
+-                          <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">settlement</div>
+-                        </div>
+-                      </button>
+-                    ))}
+-                  </div>
++              {/* Contacts & Form */}
++              <div className="space-y-4">
++                <motion.div className="flex items-center gap-3 overflow-x-auto pt-4 pb-3 px-3 -mt-2 scrollbar-none" initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.1 } } }}>
++                  {CONTACTS.map((contact) => (
++                    <motion.button
++                      key={contact.id}
++                      onClick={() => { setRecipient(contact.handle); setRecipientState("idle") }}
++                      variants={{ hidden: { opacity: 0, scale: 0.5 }, visible: { opacity: 1, scale: 1 } }}
++                      whileHover={{ scale: 1.06, y: -1 }} whileTap={{ scale: 0.95 }}
++                      className="flex flex-col items-center gap-1 shrink-0 group p-1"
++                    >
++                      <div className={`w-12 h-12 rounded-full overflow-hidden transition-all ${recipient === contact.handle ? 'ring-2 ring-[#4a72ff] ring-offset-2 ring-offset-white' : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2 hover:ring-offset-white'}`}>
++                        <img src={contact.img} alt={contact.name} className="w-full h-full object-cover" />
++                      </div>
++                      <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-800">{contact.name}</span>
++                    </motion.button>
++                  ))}
+                 </motion.div>
+-              )}
+-
+-              {/* CTA */}
+-              <button
+-                onClick={step === "route" ? confirmSend : handleSend}
+-                disabled={!recipient || !amount || recipientState === "blocked" || step === "checking" || sending}
+-                className="w-full bg-slate-800 hover:bg-black disabled:opacity-30 text-white font-bold text-sm px-5 py-4 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-md"
+-              >
+-                {(step === "checking" || sending) ? (
+-                  <>
+-                    <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+-                    {step === "checking" ? "Screening transfer..." : "Sending..."}
+-                  </>
+-                ) : step === "route" ? (
+-                  <>
+-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+-                    </svg>
+-                    Confirm & Send via {selectedRoute?.route}
+-                  </>
+-                ) : (
+-                  <>
+-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+-                    </svg>
+-                    Screen & Send
+-                  </>
+-                )}
+-              </button>
+-            </div>
+-          )}
+-        </motion.div>
+-
+-        {/* ── Security Status Panel ──────────────────────────── */}
+-        <motion.div
+-          initial={{ opacity: 0, y: 20 }}
+-          animate={{ opacity: 1, y: 0 }}
+-          transition={{ duration: 0.4, delay: 0.25 }}
+-          className="flex flex-col gap-4"
+-        >
+-          <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-6 shadow-sm">
+-            <div className="text-slate-600 text-sm font-bold mb-4">Security Checks</div>
+-            <div className="space-y-3">
+-              {[
+-                {
+-                  label: "Address Scan",
+-                  desc: "Checks for address poisoning",
+-                  done: recipientState !== "idle",
+-                  ok: recipientState === "safe",
+-                },
+-                {
+-                  label: "AI Firewall",
+-                  desc: "Scam & fraud detection",
+-                  done: step === "route" || step === "done",
+-                  ok: step === "route" || step === "done",
+-                },
+-                {
+-                  label: "Route Optimizer",
+-                  desc: "Best fee & settlement time",
+-                  done: step === "route" || step === "done",
+-                  ok: step === "route" || step === "done",
+-                },
+-              ].map((check) => (
+-                <div key={check.label} className="flex items-center gap-3">
+-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${check.done ? (check.ok ? "bg-emerald-100" : "bg-red-100") : "bg-slate-100"}`}>
+-                    {check.done && check.ok ? (
+-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600">
+-                        <polyline points="20 6 9 17 4 12"/>
+-                      </svg>
+-                    ) : check.done ? (
+-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+-                      </svg>
+-                    ) : (
+-                      <div className="w-2 h-2 rounded-full bg-slate-300" />
+-                    )}
++
++                <div className="bg-white/50 backdrop-blur-md p-3 rounded-[32px] border border-white/60 shadow-sm">
++                  <div className="flex items-center gap-4 bg-white rounded-[24px] px-5 py-4 shadow-sm mb-2">
++                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest w-10 shrink-0">To</div>
++                    <input type="text" value={recipient} onChange={(e) => { setRecipient(e.target.value); setRecipientState("idle") }} onBlur={handleRecipientBlur} placeholder="@username or address" className="w-full bg-transparent text-slate-900 font-bold text-base focus:outline-none placeholder:text-slate-300" />
++                    {checkingRecipient && <div className="w-4 h-4 rounded-full border-2 border-slate-300 border-t-slate-900 animate-spin shrink-0" />}
++                    {!checkingRecipient && recipientState === "safe" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>}
+                   </div>
+-                  <div>
+-                    <div className="text-xs font-bold text-slate-800">{check.label}</div>
+-                    <div className="text-[10px] text-slate-400 font-medium">{check.desc}</div>
++                  <div className="flex items-center gap-4 bg-white rounded-[24px] px-5 py-4 shadow-sm">
++                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest w-10 shrink-0">For</div>
++                    <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What's this for?" className="w-full bg-transparent text-slate-900 font-medium text-base focus:outline-none placeholder:text-slate-300" />
+                   </div>
+                 </div>
+-              ))}
+-            </div>
+-          </div>
+ 
+-          {step === "route" && selectedRoute && (
+-            <motion.div
+-              initial={{ opacity: 0, y: 8 }}
+-              animate={{ opacity: 1, y: 0 }}
+-              className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 p-6 shadow-sm"
+-            >
+-              <div className="text-slate-600 text-sm font-bold mb-4">Best Route Selected</div>
+-              <div className="space-y-2">
+-                <div className="flex justify-between text-xs">
+-                  <span className="text-slate-500 font-medium">Network</span>
+-                  <span className="text-slate-800 font-bold">{selectedRoute.route}</span>
+-                </div>
+-                <div className="flex justify-between text-xs">
+-                  <span className="text-slate-500 font-medium">Est. Time</span>
+-                  <span className="text-slate-800 font-bold">{selectedRoute.estimated_time_seconds}s</span>
+-                </div>
+-                <div className="flex justify-between text-xs">
+-                  <span className="text-slate-500 font-medium">Est. Fee</span>
+-                  <span className="text-slate-800 font-bold">{selectedRoute.estimated_fee} {selectedRoute.fee_currency}</span>
++                {/* Recurring Toggle */}
++                <div className="flex items-center justify-between px-2 pt-2">
++                  <div className="flex items-center gap-3">
++                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
++                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21v-5h5" /></svg>
++                    </div>
++                    <div>
++                      <div className="text-sm font-bold text-slate-800">Recurring Payment</div>
++                      <AnimatePresence>
++                        {isRecurring && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-xs text-[#4a72ff] font-semibold mt-0.5">Repeats monthly</motion.div>}
++                      </AnimatePresence>
++                    </div>
++                  </div>
++                  <button type="button" onClick={() => setIsRecurring(!isRecurring)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isRecurring ? 'bg-[#4a72ff]' : 'bg-slate-200'}`}>
++                    <motion.span layout className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isRecurring ? 'translate-x-5' : 'translate-x-0'}`} />
++                  </button>
+                 </div>
+               </div>
+-            </motion.div>
+-          )}
+-        </motion.div>
+-      </div>
++
++              {/* CTA — "Continue" goes to confirm card, no API call */}
++              <div className="pt-2">
++                <button
++                  onClick={handleContinue}
++                  disabled={!amount || !recipient || recipientState === "blocked"}
++                  className="w-full bg-slate-900 hover:bg-black disabled:opacity-50 disabled:hover:bg-slate-900 text-white font-bold text-lg px-5 py-5 rounded-[24px] transition-all shadow-[0_4px_20px_rgba(15,23,42,0.2)] hover:shadow-[0_8px_30px_rgba(15,23,42,0.3)] hover:-translate-y-1 relative overflow-hidden group"
++                >
++                  <span className="relative z-10 tracking-wide">Continue</span>
++                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] opacity-50" />
++                </button>
++              </div>
++            </div>
++          </motion.div>
++        )}
++
++        {/* ═══════════════════════════════════════════════════════ */}
++        {/* VIEW: CONFIRM (Animated Dashboard Card)                 */}
++        {/* ═══════════════════════════════════════════════════════ */}
++        {view === "confirm" && (
++          <motion.div
++            key="confirm-view"
++            initial={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
++            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
++            exit={{ opacity: 0, scale: 0.9, filter: "blur(10px)" }}
++            transition={{ type: "spring", stiffness: 200, damping: 20 }}
++          >
++            <TransactionConfirmCard
++              totalAmount={totalAmount}
++              currency={currency}
++              arrivalTimeSeconds={arrivalTime}
++              feesAmount={feesAmount}
++              feesCurrency={currency}
++              onConfirm={handleConfirmSend}
++              onCancel={() => setView("form")}
++            />
++          </motion.div>
++        )}
++
++        {/* ═══════════════════════════════════════════════════════ */}
++        {/* VIEW: DONE — Ticket Confirmation Card with Confetti     */}
++        {/* ═══════════════════════════════════════════════════════ */}
++        {view === "done" && (
++          <motion.div
++            key="done-view"
++            initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
++            transition={{ type: "spring", stiffness: 200, damping: 20 }}
++            className="flex items-center justify-center"
++          >
++            <ZiroTicket
++              paymentId={currentPayment?.payment_id || "ZR-" + Date.now()}
++              amount={totalAmount}
++              fees={feesAmount}
++              currency={currency}
++              recipient={recipient}
++              fundingSource={fundingSource.name}
++              onDone={reset}
++            />
++          </motion.div>
++        )}
++      </AnimatePresence>
+     </div>
+   )
+ }
+diff --git a/frontend/src/components/ui/transaction-confirm-card.tsx b/frontend/src/components/ui/transaction-confirm-card.tsx
+new file mode 100644
+index 0000000..9655484
+--- /dev/null
++++ b/frontend/src/components/ui/transaction-confirm-card.tsx
+@@ -0,0 +1,316 @@
++"use client";
++
++import React, { useState, useEffect } from "react";
++import { motion, useReducedMotion } from "framer-motion";
++
++interface TransactionConfirmCardProps {
++  totalAmount: number;
++  currency: string;
++  arrivalTimeSeconds: number;
++  feesAmount: number;
++  feesCurrency: string;
++  onConfirm: () => void;
++  onCancel: () => void;
++  enableAnimations?: boolean;
++}
++
++const SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", USDC: "" };
++
++/**
++ * High-performance rolling money counter with ease-out exponential deceleration
++ */
++function RollingMoney({
++  target,
++  currency,
++  symbol,
++  shouldAnimate,
++}: {
++  target: number;
++  currency: string;
++  symbol: string;
++  shouldAnimate: boolean;
++}) {
++  const [val, setVal] = useState(shouldAnimate ? 0 : target);
++  const [done, setDone] = useState(!shouldAnimate);
++
++  useEffect(() => {
++    if (!shouldAnimate) {
++      setVal(target);
++      setDone(true);
++      return;
++    }
++
++    let start: number | null = null;
++    const duration = 1200; // ms
++    let frameId: number;
++
++    const tick = (now: number) => {
++      if (!start) start = now;
++      const progress = Math.min((now - start) / duration, 1);
++      // Ease out expo for high-end fintech deceleration
++      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
++      setVal(eased * target);
++
++      if (progress < 1) {
++        frameId = requestAnimationFrame(tick);
++      } else {
++        setDone(true);
++      }
++    };
++
++    frameId = requestAnimationFrame(tick);
++    return () => cancelAnimationFrame(frameId);
++  }, [target, shouldAnimate]);
++
++  const formatted = val.toLocaleString(undefined, {
++    minimumFractionDigits: 2,
++    maximumFractionDigits: 2,
++  });
++
++  return (
++    <motion.span
++      className="inline-block tabular-nums"
++      animate={done ? { scale: [1, 1.04, 1] } : {}}
++      transition={{ duration: 0.35, ease: "easeOut" }}
++    >
++      {currency === "USDC" ? `${formatted} USDC` : `${symbol}${formatted}`}
++    </motion.span>
++  );
++}
++
++export function TransactionConfirmCard({
++  totalAmount,
++  currency,
++  arrivalTimeSeconds,
++  feesAmount,
++  feesCurrency,
++  onConfirm,
++  onCancel,
++  enableAnimations = true,
++}: TransactionConfirmCardProps) {
++  const shouldReduceMotion = useReducedMotion();
++  const shouldAnimate = enableAnimations && !shouldReduceMotion;
++
++  const sym = SYMBOLS[currency] ?? "";
++  const grandTotal = totalAmount + feesAmount;
++
++  const formatArrival = () => {
++    if (grandTotal < 500) return "1-3 secs";
++    if (grandTotal < 2500) return "3-5 secs";
++    if (grandTotal < 10000) return "1-2 mins";
++    if (grandTotal < 50000) return "5-15 mins";
++    return "1-2 hours";
++  };
++
++  const formatCurrencyStatic = (val: number) => {
++    if (currency === "USDC") return `${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`;
++    return `${sym}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
++  };
++
++  const formattedTotalStatic = formatCurrencyStatic(grandTotal);
++  const textLength = formattedTotalStatic.length;
++
++  // ─────────────────────────────────────────────────────────────
++  // DYNAMIC CIRCLE DIAMETER CALCULATION
++  // Fixed SVG coordinate space: 1000 x 1000 with center at (500, 500)
++  // Radii scale dynamically with both transaction amount & text length
++  // ─────────────────────────────────────────────────────────────
++  const viewBoxSize = 1000;
++  const center = 500;
++
++  // amountTier: 0 at <= $1, 0.4 at $100, 0.8 at $10k, 1.0 at $100k+
++  const amountTier = Math.min(1, Math.max(0, Math.log10(Math.max(1, grandTotal)) / 5));
++  // Additional radius bonus per character beyond 6
++  const charBonus = Math.max(0, textLength - 6) * 15;
++
++  // Scale inner radius to be much larger relative to the viewbox
++  const innerRadius = Math.min(430, Math.round(360 + amountTier * 50 + charBonus));
++  const ringGap = 45;
++  const outerRadius = Math.min(485, innerRadius + ringGap);
++
++  // Dynamically calculate dot counts so spacing along circumference stays perfectly consistent
++  const outerDotsCount = Math.round((2 * Math.PI * outerRadius) / 46);
++  const innerDotsCount = Math.round((2 * Math.PI * innerRadius) / 46);
++
++  const generateDots = (count: number, radius: number, cX: number, cY: number) => {
++    const dots = [];
++    for (let i = 0; i < count; i++) {
++      const angle = (i / count) * 2 * Math.PI - Math.PI / 2; // start from top
++      const x = Math.round((cX + radius * Math.cos(angle)) * 100) / 100;
++      const y = Math.round((cY + radius * Math.sin(angle)) * 100) / 100;
++      dots.push({ x, y });
++    }
++    return dots;
++  };
++
++  const outerDots = generateDots(outerDotsCount, outerRadius, center, center);
++  const innerDots = generateDots(innerDotsCount, innerRadius, center, center);
++
++  // Dynamic font sizing so text never collides (slightly reduced to ensure safety)
++  const getTextSizeClass = (len: number) => {
++    if (len <= 7) return "text-5xl";
++    if (len <= 10) return "text-4xl";
++    if (len <= 12) return "text-3xl";
++    return "text-2xl";
++  };
++
++  // Dynamic container max width: expands gracefully for large numbers
++  const containerMaxWidth = textLength >= 10 ? "max-w-xl" : "max-w-lg";
++
++  return (
++    <motion.div
++      className={`w-full ${containerMaxWidth} mx-auto transition-all duration-300`}
++      initial={shouldAnimate ? { opacity: 0, y: 15, scale: 0.96 } : {}}
++      animate={{ opacity: 1, y: 0, scale: 1 }}
++      transition={{ type: "spring", stiffness: 260, damping: 25 }}
++    >
++      <div className="relative">
++        {/* Subtle Ambient Radial Glow */}
++        <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
++          <motion.div
++            className="rounded-full bg-gradient-to-tr from-blue-500/15 via-indigo-500/15 to-emerald-500/15 blur-3xl"
++            style={{ width: `${(outerRadius / 500) * 100}%`, height: `${(outerRadius / 500) * 100}%` }}
++            animate={shouldAnimate ? { scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] } : {}}
++            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
++          />
++        </div>
++
++        {/* Dynamic Dots Visualization */}
++        <div className="relative w-full aspect-square max-w-[390px] sm:max-w-[430px] md:max-w-[460px] mx-auto overflow-visible -mt-4">
++          <svg className="w-full h-full" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
++            {/* Outer Blue Dots */}
++            <motion.g
++              animate={shouldAnimate ? { rotate: 360 } : {}}
++              transition={{ duration: 60, ease: "linear", repeat: Infinity }}
++              style={{ transformOrigin: "500px 500px" }}
++            >
++              {outerDots.map((dot, index) => (
++                <motion.circle
++                  key={`outer-${index}`}
++                  cx={dot.x}
++                  cy={dot.y}
++                  r="7"
++                  fill="#4a72ff"
++                  initial={shouldAnimate ? { opacity: 0, scale: 0 } : {}}
++                  animate={{ opacity: 0.55, scale: 1 }}
++                  transition={
++                    shouldAnimate
++                      ? {
++                          type: "spring",
++                          stiffness: 300,
++                          damping: 22,
++                          delay: 0.05 + (index / outerDotsCount) * 0.25,
++                        }
++                      : {}
++                  }
++                />
++              ))}
++            </motion.g>
++
++            {/* Inner Emerald Dots */}
++            <motion.g
++              animate={shouldAnimate ? { rotate: -360 } : {}}
++              transition={{ duration: 80, ease: "linear", repeat: Infinity }}
++              style={{ transformOrigin: "500px 500px" }}
++            >
++              {innerDots.map((dot, index) => (
++                <motion.circle
++                  key={`inner-${index}`}
++                  cx={dot.x}
++                  cy={dot.y}
++                  r="7"
++                  fill="#10b981"
++                  initial={shouldAnimate ? { opacity: 0, scale: 0 } : {}}
++                  animate={{ opacity: 0.55, scale: 1 }}
++                  transition={
++                    shouldAnimate
++                      ? {
++                          type: "spring",
++                          stiffness: 300,
++                          damping: 22,
++                          delay: 0.1 + (index / innerDotsCount) * 0.25,
++                        }
++                      : {}
++                  }
++                />
++              ))}
++            </motion.g>
++          </svg>
++
++          {/* Center: TOTAL label + Rolling Money Amount */}
++          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
++            <div className="text-center px-4 max-w-[90%]">
++              <motion.div
++                className="text-xs sm:text-sm font-bold text-slate-500 tracking-[0.25em] uppercase mb-1.5"
++                initial={shouldAnimate ? { opacity: 0, y: -8 } : {}}
++                animate={{ opacity: 1, y: 0 }}
++                transition={{ delay: 0.2, type: "spring", stiffness: 350, damping: 25 }}
++              >
++                TOTAL
++              </motion.div>
++
++              <div className={`${getTextSizeClass(textLength)} font-black text-slate-900 tracking-tight leading-none`}>
++                <RollingMoney
++                  target={grandTotal}
++                  currency={currency}
++                  symbol={sym}
++                  shouldAnimate={shouldAnimate}
++                />
++              </div>
++            </div>
++          </div>
++        </div>
++
++        {/* Stats row: Arrives In & Fees */}
++        <div className="flex items-center justify-between px-6 sm:px-12 mt-1">
++          {/* Arrives In */}
++          <motion.div
++            className="flex flex-col items-center text-center gap-0.5"
++            initial={shouldAnimate ? { opacity: 0, y: 12 } : {}}
++            animate={{ opacity: 1, y: 0 }}
++            transition={{ delay: 0.4 }}
++          >
++            <span className="text-xs font-bold text-slate-500">Arrives in</span>
++            <span className="text-lg sm:text-xl font-black text-slate-900">{formatArrival()}</span>
++          </motion.div>
++
++          {/* Fees */}
++          <motion.div
++            className="flex flex-col items-center text-center gap-0.5"
++            initial={shouldAnimate ? { opacity: 0, y: 12 } : {}}
++            animate={{ opacity: 1, y: 0 }}
++            transition={{ delay: 0.45 }}
++          >
++            <span className="text-xs font-bold text-slate-500">Fees (0.2%)</span>
++            <span className="text-lg sm:text-xl font-black text-slate-900">{formatCurrencyStatic(feesAmount)}</span>
++          </motion.div>
++        </div>
++
++        {/* Action Buttons */}
++        <motion.div
++          className="flex gap-3.5 mt-6 px-4 sm:px-6"
++          initial={shouldAnimate ? { opacity: 0, y: 15 } : {}}
++          animate={{ opacity: 1, y: 0 }}
++          transition={{ delay: 0.5 }}
++        >
++          <motion.button
++            className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-bold text-base px-4 py-3 rounded-xl transition-all shadow-sm active:scale-[0.98]"
++            whileHover={shouldAnimate ? { scale: 1.02 } : {}}
++            whileTap={shouldAnimate ? { scale: 0.98 } : {}}
++            onClick={onCancel}
++          >
++            Cancel
++          </motion.button>
++          <motion.button
++            className="flex-1 bg-[#4a72ff] hover:bg-[#3b63f0] text-white font-bold text-base px-4 py-3 rounded-xl transition-all shadow-lg shadow-[#4a72ff]/25 active:scale-[0.98]"
++            whileHover={shouldAnimate ? { scale: 1.02, y: -1 } : {}}
++            whileTap={shouldAnimate ? { scale: 0.98 } : {}}
++            onClick={onConfirm}
++          >
++            Send
++          </motion.button>
++        </motion.div>
++      </div>
++    </motion.div>
++  );
++}
+
+commit ccd5d5af900a17c6b77dac0618bcd769fab7eab4
+Author: parteek1907 <gargparteek1907@gmail.com>
+Date:   Sat Sep 19 22:35:37 2026 +0530
+
+    fix: resolve infinite loading skeleton on dashboard and trustscore pages
+
+diff --git a/frontend/src/app/dashboard/consultants/page.tsx b/frontend/src/app/dashboard/consultants/page.tsx
+index da6e94b..d216bf9 100644
+--- a/frontend/src/app/dashboard/consultants/page.tsx
++++ b/frontend/src/app/dashboard/consultants/page.tsx
+@@ -194,31 +194,6 @@ export default function ConsultantsPage() {
+       <div id="consultants-list" className="flex flex-col gap-6">
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+           <h3 className="text-xl font-bold text-slate-800">Find the right consultant</h3>
+-          
+-          <div className="flex items-center gap-3 w-full md:w-auto">
+-            <div className="relative w-full md:w-64">
+-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+-              <input 
+-                type="text" 
+-                placeholder="Search consultants..." 
+-                value={searchQuery}
+-                onChange={(e) => setSearchQuery(e.target.value)}
+-                className="w-full bg-white/60 border border-white/50 rounded-full py-2 pl-9 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#4a72ff]/30 text-slate-700 placeholder:text-slate-400 shadow-sm"
+-              />
+-            </div>
+-            <button className="bg-white/60 border border-white/50 p-2 rounded-full text-slate-600 hover:text-slate-800 hover:bg-white transition-colors shadow-sm shrink-0">
+-              <Filter size={18} />
+-            </button>
+-          </div>
+-        </div>
+-
+-        {/* Filters bar */}
+-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+-          {["All Specialties", "Available Now", "English", "30 mins"].map((f, i) => (
+-            <button key={i} className="whitespace-nowrap px-4 py-1.5 rounded-full border border-slate-200 bg-white/40 text-xs font-semibold text-slate-600 hover:bg-white hover:border-[#4a72ff]/30 transition-all">
+-              {f}
+-            </button>
+-          ))}
+         </div>
+ 
+         {/* Consultant Grid */}
+diff --git a/frontend/src/app/dashboard/page.tsx b/frontend/src/app/dashboard/page.tsx
+index 5ec14c9..d4fe08a 100644
+--- a/frontend/src/app/dashboard/page.tsx
++++ b/frontend/src/app/dashboard/page.tsx
+@@ -95,7 +95,13 @@ export default function DashboardOverview() {
+   const DEMO_WALLET = "0xDemoWallet123"
+ 
+   const fetchData = useCallback(async () => {
+-    if (!user) return
++    if (!user) {
++      setLoadingBalance(false)
++      setBalanceError(true)
++      setLoadingTrust(false)
++      setTrustError(true)
++      return
++    }
+ 
+     // Balance
+     setLoadingBalance(true)
+diff --git a/frontend/src/app/dashboard/trustscore/page.tsx b/frontend/src/app/dashboard/trustscore/page.tsx
+index 6bf38e3..b44d531 100644
+--- a/frontend/src/app/dashboard/trustscore/page.tsx
++++ b/frontend/src/app/dashboard/trustscore/page.tsx
+@@ -20,7 +20,17 @@ export default function TrustScorePage() {
+   const DEMO_WALLET = "0xDemoWallet123"
+ 
+   const fetch = useCallback(async () => {
+-    if (!user) return
++    if (!user) {
++      setLoading(false)
++      setError(true)
++      setData({
++        trust_score: 740,
++        grade: "Excellent",
++        score_breakdown: { payment_consistency: 88, transaction_history: 76, community_trust: 92 },
++        recommendation: "Keep maintaining consistent payment behavior to improve your score further.",
++      })
++      return
++    }
+     setLoading(true); setError(false)
+     try {
+       const res = await evaluateTrustScore(user.uid, DEMO_WALLET)
+diff --git a/frontend/src/lib/api.ts b/frontend/src/lib/api.ts
+index e4bf736..a5dea27 100644
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -7,15 +7,23 @@
+ const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+ 
+ async function request<T>(path: string, options?: RequestInit): Promise<T> {
+-  const res = await fetch(`${BASE}${path}`, {
+-    headers: { "Content-Type": "application/json", ...options?.headers },
+-    ...options,
+-  })
+-  if (!res.ok) {
+-    const err = await res.text()
+-    throw new Error(`API ${path} failed (${res.status}): ${err}`)
++  const controller = new AbortController()
++  const timeoutId = setTimeout(() => controller.abort(), 3000)
++  
++  try {
++    const res = await fetch(`${BASE}${path}`, {
++      headers: { "Content-Type": "application/json", ...options?.headers },
++      signal: controller.signal,
++      ...options,
++    })
++    if (!res.ok) {
++      const err = await res.text()
++      throw new Error(`API ${path} failed (${res.status}): ${err}`)
++    }
++    return res.json() as Promise<T>
++  } finally {
++    clearTimeout(timeoutId)
+   }
+-  return res.json() as Promise<T>
+ }
+ 
+ // ─── Types ──────────────────────────────────────────────────
+
+commit 8a799c0ed873ed6a5513abeb9443989284e479ce
+Author: parteek1907 <gargparteek1907@gmail.com>
+Date:   Sat Sep 19 22:18:13 2026 +0530
+
+    feat: implement fully functional settings and help center
+
+diff --git a/frontend/src/app/dashboard/help/page.tsx b/frontend/src/app/dashboard/help/page.tsx
+new file mode 100644
+index 0000000..0d69744
+--- /dev/null
++++ b/frontend/src/app/dashboard/help/page.tsx
+@@ -0,0 +1,475 @@
++"use client"
++
++import { useState } from "react"
++import { motion, AnimatePresence } from "framer-motion"
++import Link from "next/link"
++import { useHelpStore } from "@/store/useHelpStore"
++import { useAuth } from "@/lib/AuthContext"
++
++// --- CONSTANTS ---
++
++const ZIRO_FEATURES = [
++  {
++    title: "Smart Settlement Engine",
++    description: "Understand how Ziro routes payments across traditional and decentralized rails.",
++    href: null,
++  },
++  {
++    title: "AI Payment Firewall",
++    description: "Learn how Ziro detects suspicious payments, scams, and address poisoning.",
++    href: null,
++  },
++  {
++    title: "Human Consultant",
++    description: "Get one-to-one help from a verified payment consultant.",
++    href: "/dashboard/consultants",
++    cta: "Talk to a Consultant"
++  },
++  {
++    title: "Offline Payment Engine",
++    description: "Learn how transactions can be queued when you don't have an internet connection.",
++    href: null,
++  },
++  {
++    title: "TrustScore",
++    description: "Understand your privacy-preserving financial TrustScore.",
++    href: "/dashboard/trustscore",
++  },
++  {
++    title: "Identity & Profiles",
++    description: "Manage your Ziro identity, profile, and account information.",
++    href: "/dashboard/settings",
++  }
++]
++
++const FAQS = [
++  {
++    category: "PAYMENTS",
++    questions: [
++      { q: "How do I send money?", a: "Open Send Money, enter the recipient, amount, currency, and payment note, then review Ziro's security checks before sending." },
++      { q: "Why is my payment being screened?", a: "Ziro screens transfers for potential security risks before they move. This helps identify suspicious destinations and potential scams." }
++    ]
++  },
++  {
++    category: "SECURITY",
++    questions: [
++      { q: "What is Ziro's AI Payment Firewall?", a: "Ziro's AI Payment Firewall analyzes payment activity and destination information to help identify suspicious transactions and address-poisoning risks." },
++      { q: "What is address poisoning?", a: "Address poisoning is a scam technique where an attacker creates or uses a misleading payment address that resembles a legitimate destination. Always verify the recipient before sending funds." }
++    ]
++  },
++  {
++    category: "TRANSFERS",
++    questions: [
++      { q: "How does Ziro choose a settlement route?", a: "Ziro's Smart Settlement Engine evaluates available payment routes across traditional and decentralized rails to determine an appropriate settlement path." },
++      { q: "Why is my transfer pending?", a: "A transfer may remain pending while payment and settlement processing is completed. Check Activity for the latest status." }
++    ]
++  },
++  {
++    category: "TRUSTSCORE",
++    questions: [
++      { q: "What is TrustScore?", a: "TrustScore is Ziro's privacy-preserving financial score designed to represent relevant financial behavior without exposing unnecessary personal information." },
++      { q: "Can I improve my TrustScore?", a: "Consistent and responsible financial activity can contribute to your TrustScore. Use the TrustScore section to understand the factors available in your account." }
++    ]
++  },
++  {
++    category: "OFFLINE PAYMENTS",
++    questions: [
++      { q: "Can I make a payment without internet?", a: "Ziro's Offline Payment Engine can queue transactions when connectivity is unavailable. The transaction can be processed when connectivity becomes available." }
++    ]
++  },
++  {
++    category: "CONSULTANTS",
++    questions: [
++      { q: "What can a Ziro consultant help with?", a: "Consultants can provide one-to-one guidance for payment issues, transfers, remittances, and other supported Ziro payment questions." },
++      { q: "How much does a consultation cost?", a: "Consultation pricing depends on the consultant and session duration. The final price is shown before you confirm your booking." }
++    ]
++  },
++  {
++    category: "ACCOUNT",
++    questions: [
++      { q: "How do I change my account information?", a: "Open Settings to manage your profile, preferences, security, notifications, and other account settings." }
++    ]
++  }
++]
++
++const PAYMENT_ISSUES = {
++  "Payment failed": "Check the payment details and try again. If the issue continues, review the transaction in Activity or contact support.",
++  "Payment pending": "Transfers may take time depending on the settlement route. Please wait up to 24 hours.",
++  "Wrong recipient": "If the transfer has not settled, contact support immediately. Completed transfers generally cannot be reversed.",
++  "Suspicious payment": "Do not send additional funds. Review the recipient details and contact Ziro support if you believe the transaction is fraudulent.",
++  "Transfer not received": "Verify the recipient address and ask the recipient to check their Activity log.",
++  "I don't recognize a transaction": "Review the transaction details carefully. If it is unauthorized, contact support immediately.",
++  "Other": "Please describe your issue below in a support request."
++}
++
++export default function HelpCenterPage() {
++  const { user } = useAuth()
++  const { tickets, addTicket } = useHelpStore()
++  
++  const [searchQuery, setSearchQuery] = useState("")
++  
++  // States
++  const [expandedFaq, setExpandedFaq] = useState<string | null>(null)
++  const [selectedIssue, setSelectedIssue] = useState<string | null>(null)
++  const [showSupportForm, setShowSupportForm] = useState(false)
++  const [submitStatus, setSubmitStatus] = useState<string | null>(null)
++  
++  // Form State
++  const [formData, setFormData] = useState({
++    name: user?.displayName || "",
++    email: user?.email || "",
++    issueType: "Payment",
++    subject: "",
++    description: "",
++    transactionId: ""
++  })
++
++  // Derive filtered items
++  const normalizedQuery = searchQuery.toLowerCase().trim()
++  
++  // Filter FAQs
++  const filteredFaqs = FAQS.map(cat => ({
++    ...cat,
++    questions: cat.questions.filter(q => 
++      !normalizedQuery || 
++      q.q.toLowerCase().includes(normalizedQuery) || 
++      q.a.toLowerCase().includes(normalizedQuery)
++    )
++  })).filter(cat => cat.questions.length > 0)
++  
++  // Filter Features
++  const filteredFeatures = ZIRO_FEATURES.filter(f => 
++    !normalizedQuery || 
++    f.title.toLowerCase().includes(normalizedQuery) || 
++    f.description.toLowerCase().includes(normalizedQuery)
++  )
++
++  const hasNoResults = normalizedQuery && filteredFaqs.length === 0 && filteredFeatures.length === 0
++
++  const handleSupportSubmit = (e: React.FormEvent) => {
++    e.preventDefault()
++    if (!formData.subject || !formData.description) return
++    
++    const id = addTicket({
++      issueType: formData.issueType,
++      subject: formData.subject,
++      description: formData.description + (formData.transactionId ? `\n\nTxID: ${formData.transactionId}` : "")
++    })
++    
++    setSubmitStatus(`Support request submitted. Ticket ID: ${id}`)
++    setShowSupportForm(false)
++    setFormData({ ...formData, subject: "", description: "", transactionId: "" })
++    
++    setTimeout(() => {
++      setSubmitStatus(null)
++    }, 5000)
++  }
++
++  // Determine if a consultant escalation makes sense based on search
++  const showConsultantEscalation = normalizedQuery && (
++    normalizedQuery.includes("international") || 
++    normalizedQuery.includes("complicated") || 
++    normalizedQuery.includes("scam") ||
++    normalizedQuery.includes("help")
++  )
++
++  return (
++    <div className="min-h-full p-6 md:p-10 lg:p-12 w-full max-w-[1000px] mx-auto pb-32">
++      
++      {/* Header */}
++      <div className="mb-12 text-center md:text-left">
++        <h1 className="text-[2.5rem] md:text-[3.5rem] font-bold tracking-tight text-slate-900 leading-tight">
++          Help Center
++        </h1>
++        <p className="text-slate-500 text-lg md:text-xl mt-3 max-w-2xl mx-auto md:mx-0">
++          Get answers, solve payment issues, and find help when you need it.
++        </p>
++      </div>
++
++      {/* Search */}
++      <div className="relative mb-16">
++        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
++          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
++            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
++          </svg>
++        </div>
++        <input
++          type="text"
++          className="w-full bg-white/60 backdrop-blur-md border border-white/50 rounded-full py-4 pl-12 pr-6 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4a72ff]/50 shadow-sm text-lg transition-all"
++          placeholder="Search Ziro help..."
++          value={searchQuery}
++          onChange={(e) => setSearchQuery(e.target.value)}
++        />
++      </div>
++
++      {/* Security Warning */}
++      <div className="bg-[#4a72ff]/5 border border-[#4a72ff]/20 rounded-[24px] p-6 mb-16 flex items-start gap-4">
++        <div className="shrink-0 mt-1 text-[#4a72ff]">
++          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
++          </svg>
++        </div>
++        <div>
++          <h4 className="font-bold text-slate-900">Keep your account safe</h4>
++          <p className="text-slate-600 text-sm mt-1 mb-2">
++            Never share Passwords, OTPs, Recovery codes, Private keys, or Seed phrases with anyone claiming to be a Ziro representative or consultant.
++          </p>
++          <p className="text-slate-500 text-sm italic font-medium">
++            Ziro consultants will never ask for your password, OTP, private key, or seed phrase.
++          </p>
++        </div>
++      </div>
++
++      {hasNoResults ? (
++        <div className="text-center py-20 bg-white/40 rounded-[32px] border border-white/50">
++          <h3 className="text-xl font-bold text-slate-900 mb-2">No results found</h3>
++          <p className="text-slate-500">Try a different search term or contact support.</p>
++        </div>
++      ) : (
++        <>
++          {/* Quick Support - Hide when searching heavily */}
++          {!normalizedQuery && (
++            <div className="mb-16">
++              <h3 className="text-2xl font-bold text-slate-900 mb-6">How can we help?</h3>
++              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
++                {[
++                  { title: "Payments", desc: "Sending, receiving, and understanding payments.", icon: "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
++                  { title: "Security", desc: "Protect your account and understand Ziro's payment security.", icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
++                  { title: "Transfers", desc: "International transfers, settlement, and payment status.", icon: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
++                  { title: "Account", desc: "Profile, TrustScore, settings, and account access.", icon: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" }
++                ].map((item) => (
++                  <button key={item.title} onClick={() => setSearchQuery(item.title)} className="bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl p-6 text-left hover:border-[#4a72ff]/40 hover:shadow-sm transition-all group">
++                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 mb-4 group-hover:bg-[#4a72ff]/10 group-hover:text-[#4a72ff] transition-colors">
++                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++                        <path d={item.icon}/>
++                      </svg>
++                    </div>
++                    <h4 className="font-bold text-slate-900 mb-1">{item.title}</h4>
++                    <p className="text-slate-500 text-sm">{item.desc}</p>
++                  </button>
++                ))}
++              </div>
++            </div>
++          )}
++
++          {/* Consultant Escalation */}
++          {showConsultantEscalation && (
++            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 bg-[#35E58A]/10 border border-[#35E58A]/30 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
++              <div>
++                <h4 className="font-bold text-slate-900">Need personal help?</h4>
++                <p className="text-slate-600 text-sm">You may benefit from one-to-one help. Talk to a verified Ziro consultant.</p>
++              </div>
++              <Link href="/dashboard/consultants" className="shrink-0 bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors">
++                Hire a Consultant
++              </Link>
++            </motion.div>
++          )}
++
++          {/* Explore Ziro */}
++          {filteredFeatures.length > 0 && (
++            <div className="mb-16">
++              <h3 className="text-2xl font-bold text-slate-900 mb-6">Explore Ziro</h3>
++              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
++                {filteredFeatures.map((f, i) => {
++                  const CardWrapper = f.href ? Link : "div"
++                  return (
++                    <CardWrapper href={f.href || "#"} key={i} className={`bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl p-6 flex flex-col h-full ${f.href ? 'hover:border-[#4a72ff]/40 hover:shadow-sm transition-all cursor-pointer' : ''}`}>
++                      <h4 className="font-bold text-slate-900 mb-2">{f.title}</h4>
++                      <p className="text-slate-500 text-sm flex-1">{f.description}</p>
++                      {f.cta && (
++                        <div className="mt-4 text-[#4a72ff] font-semibold text-sm">
++                          {f.cta} &rarr;
++                        </div>
++                      )}
++                    </CardWrapper>
++                  )
++                })}
++              </div>
++            </div>
++          )}
++
++          {/* FAQ Accordion */}
++          {filteredFaqs.length > 0 && (
++            <div className="mb-16">
++              <h3 className="text-2xl font-bold text-slate-900 mb-6">Frequently asked questions</h3>
++              <div className="space-y-8">
++                {filteredFaqs.map((cat, idx) => (
++                  <div key={idx}>
++                    <h4 className="text-xs font-bold text-slate-400 tracking-wider mb-4 uppercase">{cat.category}</h4>
++                    <div className="space-y-3">
++                      {cat.questions.map((q, qIdx) => {
++                        const isExpanded = expandedFaq === q.q
++                        return (
++                          <div key={qIdx} className="bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl overflow-hidden transition-all">
++                            <button 
++                              onClick={() => setExpandedFaq(isExpanded ? null : q.q)}
++                              className="w-full text-left px-6 py-4 flex items-center justify-between font-semibold text-slate-900 hover:bg-white/40"
++                            >
++                              <span className="pr-4">{q.q}</span>
++                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
++                                <polyline points="6 9 12 15 18 9"/>
++                              </svg>
++                            </button>
++                            <AnimatePresence>
++                              {isExpanded && (
++                                <motion.div
++                                  initial={{ height: 0, opacity: 0 }}
++                                  animate={{ height: "auto", opacity: 1 }}
++                                  exit={{ height: 0, opacity: 0 }}
++                                  transition={{ duration: 0.2 }}
++                                >
++                                  <div className="px-6 pb-5 pt-1 text-slate-600 text-sm leading-relaxed border-t border-slate-100 mt-2">
++                                    {q.a}
++                                  </div>
++                                </motion.div>
++                              )}
++                            </AnimatePresence>
++                          </div>
++                        )
++                      })}
++                    </div>
++                  </div>
++                ))}
++              </div>
++            </div>
++          )}
++
++          {/* Having Trouble with a Payment */}
++          {!normalizedQuery && (
++            <div className="mb-16 bg-white/60 backdrop-blur-md border border-white/50 rounded-[32px] p-8 md:p-10">
++              <h3 className="text-2xl font-bold text-slate-900 mb-6">Having trouble with a payment?</h3>
++              <div className="flex flex-col md:flex-row gap-8">
++                <div className="w-full md:w-1/3 shrink-0 space-y-2">
++                  {Object.keys(PAYMENT_ISSUES).map(issue => (
++                    <button
++                      key={issue}
++                      onClick={() => setSelectedIssue(issue)}
++                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
++                        selectedIssue === issue 
++                          ? 'bg-[#4a72ff]/10 text-[#4a72ff]' 
++                          : 'text-slate-600 hover:bg-white/40'
++                      }`}
++                    >
++                      {issue}
++                    </button>
++                  ))}
++                </div>
++                <div className="flex-1">
++                  {selectedIssue ? (
++                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
++                      <h4 className="font-bold text-slate-900 mb-2">{selectedIssue}</h4>
++                      <p className="text-slate-600 text-sm leading-relaxed mb-6">
++                        {(PAYMENT_ISSUES as any)[selectedIssue]}
++                      </p>
++                      <button onClick={() => { setShowSupportForm(true); setFormData({...formData, issueType: "Payment", subject: selectedIssue}) }} className="text-[#4a72ff] font-semibold text-sm hover:underline">
++                        Contact Support about this &rarr;
++                      </button>
++                    </motion.div>
++                  ) : (
++                    <div className="h-full min-h-[150px] bg-white/40 rounded-2xl border border-dashed border-slate-300 flex items-center justify-center p-6 text-center text-slate-400 text-sm">
++                      Select an issue on the left to see troubleshooting steps.
++                    </div>
++                  )}
++                </div>
++              </div>
++            </div>
++          )}
++
++          {/* Contact Support & Tickets */}
++          {!normalizedQuery && (
++            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
++              {/* Still Need Help */}
++              <div>
++                <h3 className="text-2xl font-bold text-slate-900 mb-4">Still need help?</h3>
++                <p className="text-slate-500 mb-6">Our support team can help you troubleshoot Ziro-related issues.</p>
++                <div className="flex flex-col sm:flex-row gap-4">
++                  <button onClick={() => setShowSupportForm(!showSupportForm)} className="bg-slate-900 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors text-center">
++                    Contact Support
++                  </button>
++                  <Link href="/dashboard/consultants" className="bg-white border border-slate-200 text-slate-800 px-6 py-3 rounded-full font-bold text-sm hover:bg-slate-50 transition-colors text-center">
++                    Talk to a Consultant
++                  </Link>
++                </div>
++
++                <AnimatePresence>
++                  {showSupportForm && (
++                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
++                      <form onSubmit={handleSupportSubmit} className="mt-8 bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-white/50 shadow-sm space-y-4">
++                        <h4 className="font-bold text-slate-900 mb-2">Submit Request</h4>
++                        <div className="space-y-1.5">
++                          <label className="text-xs font-semibold text-slate-600">Issue Type</label>
++                          <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none appearance-none text-sm" value={formData.issueType} onChange={e => setFormData({...formData, issueType: e.target.value})}>
++                            {["Payment", "Transfer", "Security", "TrustScore", "Offline Payment", "Account", "Consultant", "Other"].map(opt => (
++                              <option key={opt} value={opt}>{opt}</option>
++                            ))}
++                          </select>
++                        </div>
++                        <div className="space-y-1.5">
++                          <label className="text-xs font-semibold text-slate-600">Subject</label>
++                          <input required type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} placeholder="Brief description of the issue" />
++                        </div>
++                        <div className="space-y-1.5">
++                          <label className="text-xs font-semibold text-slate-600">Transaction ID (Optional)</label>
++                          <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none text-sm" value={formData.transactionId} onChange={e => setFormData({...formData, transactionId: e.target.value})} placeholder="e.g. 0x123...abc" />
++                        </div>
++                        <div className="space-y-1.5">
++                          <label className="text-xs font-semibold text-slate-600">Description</label>
++                          <textarea required className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none text-sm min-h-[120px]" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Provide detailed information about your issue..." />
++                        </div>
++                        <div className="pt-2">
++                          <button type="submit" className="w-full bg-[#4a72ff] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#3d60db] transition-colors">
++                            Submit Request
++                          </button>
++                        </div>
++                      </form>
++                    </motion.div>
++                  )}
++                </AnimatePresence>
++                
++                {submitStatus && (
++                  <div className="mt-4 p-4 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-medium border border-emerald-100">
++                    {submitStatus}
++                  </div>
++                )}
++              </div>
++
++              {/* Support Tickets */}
++              <div>
++                <h3 className="text-2xl font-bold text-slate-900 mb-6">My support requests</h3>
++                {tickets.length === 0 ? (
++                  <div className="bg-white/40 rounded-[32px] border border-white/50 p-8 text-center">
++                    <p className="text-slate-500 font-medium">No support requests yet.</p>
++                    <p className="text-slate-400 text-sm mt-1">Requests you submit will appear here.</p>
++                  </div>
++                ) : (
++                  <div className="space-y-4">
++                    {tickets.map(ticket => (
++                      <div key={ticket.id} className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
++                        <div>
++                          <div className="flex items-center gap-3 mb-1">
++                            <span className="font-bold text-slate-900 text-sm">{ticket.id}</span>
++                            <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${
++                              ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
++                            }`}>
++                              {ticket.status}
++                            </span>
++                          </div>
++                          <div className="text-slate-600 font-medium text-sm">{ticket.subject}</div>
++                          <div className="text-slate-400 text-xs mt-1">Submitted on {new Date(ticket.createdAt).toLocaleDateString()}</div>
++                        </div>
++                        <button className="text-sm font-semibold text-[#4a72ff] hover:underline whitespace-nowrap self-start sm:self-center">
++                          View request
++                        </button>
++                      </div>
++                    ))}
++                  </div>
++                )}
++              </div>
++            </div>
++          )}
++        </>
++      )}
++
++    </div>
++  )
++}
+diff --git a/frontend/src/app/dashboard/layout.tsx b/frontend/src/app/dashboard/layout.tsx
+index 14bc726..a164e54 100644
+--- a/frontend/src/app/dashboard/layout.tsx
++++ b/frontend/src/app/dashboard/layout.tsx
+@@ -47,17 +47,9 @@ export default function DashboardLayout({
+         {/* Sidebar */}
+         <aside className="w-[280px] bg-black/5 border-r border-white/30 flex flex-col justify-between hidden md:flex shrink-0">
+           <div>
+-            <div className="h-24 flex items-center px-8">
+-              <Link href="/" className="flex items-center gap-3">
+-                {/* Minimalist Logo icon mimicking the reference */}
+-                <div className="w-10 h-10 rounded-full bg-[#4a72ff] flex items-center justify-center text-white">
+-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+-                  </svg>
+-                </div>
+-                <span className="font-bold text-2xl tracking-tight text-slate-800">
+-                  Ziro
+-                </span>
++            <div className="h-24 flex items-center px-6 pt-2">
++              <Link href="/" className="flex items-center">
++                <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-left" />
+               </Link>
+             </div>
+             
+@@ -91,11 +83,11 @@ export default function DashboardLayout({
+               </svg>
+               Help Center
+             </Link>
+-            <Link href="/logout" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all">
++            <Link href="/dashboard/settings" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all">
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
+-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
++                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.5a2 2 0 0 1-1 1.72l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
+               </svg>
+-              Logout
++              Settings
+             </Link>
+           </div>
+         </aside>
+diff --git a/frontend/src/app/dashboard/settings/page.tsx b/frontend/src/app/dashboard/settings/page.tsx
+new file mode 100644
+index 0000000..fd33381
+--- /dev/null
++++ b/frontend/src/app/dashboard/settings/page.tsx
+@@ -0,0 +1,438 @@
++"use client"
++
++import { useState, useEffect } from "react"
++import { motion, AnimatePresence } from "framer-motion"
++import { useSettingsStore } from "@/store/useSettingsStore"
++import { useAuth } from "@/lib/AuthContext"
++import { useRouter } from "next/navigation"
++import Link from "next/link"
++
++const TABS = [
++  { id: "account", label: "Account" },
++  { id: "security", label: "Security & Privacy" },
++  { id: "notifications", label: "Notifications" },
++  { id: "payments", label: "Payment Preferences" },
++  { id: "about", label: "Help & Support" },
++]
++
++export default function SettingsPage() {
++  const [activeTab, setActiveTab] = useState("account")
++  
++  // Zustand State
++  const { profile, appearance, privacy, notifications, payments, updateProfile, updateAppearance, updatePrivacy, updateNotifications, updatePayments } = useSettingsStore()
++  
++  // Auth Context for Sign Out & Default Data
++  const { user, logout } = useAuth()
++  const router = useRouter()
++
++  // Pre-fill from Auth if profile is empty
++  useEffect(() => {
++    if (user && !profile.email) {
++      updateProfile({
++        name: user.displayName || "",
++        email: user.email || "",
++      })
++    }
++  }, [user, profile.email, updateProfile])
++
++  // Internal state for profile form (to track edits before saving)
++  const [profileForm, setProfileForm] = useState(profile)
++  const [saveStatus, setSaveStatus] = useState<string | null>(null)
++  
++  const [isLoggingOut, setIsLoggingOut] = useState(false)
++
++  // Sync profile form when profile store changes
++  useEffect(() => {
++    setProfileForm(profile)
++  }, [profile])
++
++  const handleSaveProfile = () => {
++    updateProfile(profileForm)
++    setSaveStatus("Changes saved")
++    setTimeout(() => setSaveStatus(null), 3000)
++  }
++
++  const handleSignOut = async () => {
++    try {
++      await logout()
++      router.push("/login")
++    } catch (error) {
++      console.error("Logout failed", error)
++    }
++  }
++
++  const renderTabContent = () => {
++    switch (activeTab) {
++      case "account":
++        return (
++          <div className="space-y-8">
++            {/* Profile Section */}
++            <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++              <div className="mb-6">
++                <h3 className="text-xl font-bold text-slate-900">Profile</h3>
++                <p className="text-slate-500 text-sm">Manage your personal information.</p>
++              </div>
++              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Full Name</label>
++                  <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors" value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
++                </div>
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Username</label>
++                  <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors" value={profileForm.username} onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })} />
++                </div>
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Email Address</label>
++                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} />
++                </div>
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Phone Number</label>
++                  <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
++                </div>
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Country</label>
++                  <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors appearance-none" value={profileForm.country} onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}>
++                    <option value="">Select Country</option>
++                    <option value="US">United States</option>
++                    <option value="UK">United Kingdom</option>
++                    <option value="IN">India</option>
++                    <option value="SG">Singapore</option>
++                    <option value="MX">Mexico</option>
++                  </select>
++                </div>
++              </div>
++              <div className="mt-8 flex items-center gap-4">
++                <button onClick={handleSaveProfile} className="bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors">
++                  Save Changes
++                </button>
++                <button onClick={() => setProfileForm(profile)} className="text-slate-500 font-semibold text-sm hover:text-slate-800 transition-colors">
++                  Cancel
++                </button>
++                {saveStatus && (
++                  <span className="text-emerald-500 text-sm font-medium ml-2 animate-fade-in">{saveStatus}</span>
++                )}
++              </div>
++            </div>
++
++            {/* Preferences Section */}
++            <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++              <div className="mb-6">
++                <h3 className="text-xl font-bold text-slate-900">Preferences</h3>
++                <p className="text-slate-500 text-sm">Customize your Ziro experience.</p>
++              </div>
++              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Language</label>
++                  <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors appearance-none" value={appearance.language} onChange={(e) => updateAppearance({ language: e.target.value })}>
++                    <option value="English">English</option>
++                    <option value="Spanish">Spanish</option>
++                    <option value="French">French</option>
++                  </select>
++                </div>
++                <div className="space-y-2">
++                  <label className="text-slate-700 text-sm font-semibold">Appearance</label>
++                  <select className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors appearance-none" value={appearance.theme} onChange={(e) => updateAppearance({ theme: e.target.value as any })}>
++                    <option value="System">System</option>
++                    <option value="Light">Light</option>
++                    <option value="Dark">Dark</option>
++                  </select>
++                </div>
++              </div>
++            </div>
++          </div>
++        )
++      case "security":
++        return (
++          <div className="space-y-8">
++            {/* Security Section */}
++            <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++              <div className="mb-6">
++                <h3 className="text-xl font-bold text-slate-900">Security</h3>
++                <p className="text-slate-500 text-sm">Manage your account security and authentication.</p>
++              </div>
++              
++              <div className="space-y-6">
++                <div className="flex items-center justify-between border-b border-slate-200/60 pb-6">
++                  <div>
++                    <div className="font-semibold text-slate-900">Password</div>
++                    <div className="text-slate-500 text-sm mt-1">Last changed recently</div>
++                  </div>
++                  <button className="bg-white border border-slate-200 text-slate-800 px-5 py-2 rounded-full font-semibold text-sm hover:bg-slate-50 transition-colors">
++                    Change Password
++                  </button>
++                </div>
++                
++                <div className="flex items-center justify-between border-b border-slate-200/60 pb-6">
++                  <div>
++                    <div className="font-semibold text-slate-900">Two-Factor Authentication</div>
++                    <div className="text-slate-500 text-sm mt-1">Status: Not enabled</div>
++                  </div>
++                  <button className="bg-slate-900 text-white px-5 py-2 rounded-full font-semibold text-sm hover:bg-slate-800 transition-colors disabled:opacity-50" disabled>
++                    Coming soon
++                  </button>
++                </div>
++
++                <div className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">Active Sessions</div>
++                    <div className="text-slate-500 text-sm mt-1">Chrome · Windows (Current session, Active now)</div>
++                  </div>
++                  <button className="bg-white border border-slate-200 text-slate-800 px-5 py-2 rounded-full font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50" disabled>
++                    Coming soon
++                  </button>
++                </div>
++              </div>
++            </div>
++
++            {/* Privacy Section */}
++            <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++              <div className="mb-6">
++                <h3 className="text-xl font-bold text-slate-900">Privacy</h3>
++                <p className="text-slate-500 text-sm">Control your data and visibility.</p>
++              </div>
++              <div className="space-y-6">
++                <div className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">Profile visibility</div>
++                    <div className="text-slate-500 text-sm mt-1">Controls who can see your Ziro profile.</div>
++                  </div>
++                  <select className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-800 focus:outline-none appearance-none font-medium text-sm" value={privacy.profileVisibility} onChange={(e) => updatePrivacy({ profileVisibility: e.target.value as any })}>
++                    <option value="Private">Private</option>
++                    <option value="Public">Public</option>
++                  </select>
++                </div>
++
++                <div className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">Transaction privacy</div>
++                    <div className="text-slate-500 text-sm mt-1">Controls visibility of your public transactions.</div>
++                  </div>
++                  <select className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-800 focus:outline-none appearance-none font-medium text-sm" value={privacy.transactionPrivacy} onChange={(e) => updatePrivacy({ transactionPrivacy: e.target.value as any })}>
++                    <option value="Private">Private</option>
++                    <option value="Public">Public</option>
++                  </select>
++                </div>
++
++                <div className="flex items-center justify-between border-t border-slate-200/60 pt-6 mt-2">
++                  <div>
++                    <div className="font-semibold text-slate-900">AI data usage</div>
++                    <div className="text-slate-500 text-sm mt-1 max-w-md">Ziro's AI features only use anonymized transaction metadata to optimize smart settlement routing.</div>
++                  </div>
++                  <button className="bg-white border border-slate-200 text-slate-800 px-5 py-2 rounded-full font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50" disabled>
++                    Manage Data
++                  </button>
++                </div>
++              </div>
++            </div>
++          </div>
++        )
++      case "notifications":
++        return (
++          <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++            <div className="mb-8">
++              <h3 className="text-xl font-bold text-slate-900">Notifications</h3>
++              <p className="text-slate-500 text-sm">Choose what updates you want to receive.</p>
++            </div>
++            
++            <div className="space-y-6">
++              {[
++                { id: 'paymentConfirmations', title: 'Payment confirmations', desc: 'Receive notifications when payments are completed.' },
++                { id: 'paymentSecurityAlerts', title: 'Payment security alerts', desc: 'Get notified when Ziro detects a suspicious payment.' },
++                { id: 'transferStatusUpdates', title: 'Transfer status updates', desc: 'Receive updates about pending and completed transfers.' },
++                { id: 'trustScoreUpdates', title: 'TrustScore updates', desc: 'Receive notifications when your TrustScore changes.' },
++                { id: 'consultantNotifications', title: 'Consultant notifications', desc: 'Get reminders and updates about consultations.' },
++                { id: 'productUpdates', title: 'Product updates', desc: 'Receive occasional updates about new Ziro features.' },
++              ].map((item) => (
++                <div key={item.id} className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">{item.title}</div>
++                    <div className="text-slate-500 text-sm mt-1">{item.desc}</div>
++                  </div>
++                  <button 
++                    onClick={() => updateNotifications({ [item.id]: !(notifications as any)[item.id] })}
++                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
++                      (notifications as any)[item.id] ? 'bg-[#35E58A]' : 'bg-slate-300'
++                    }`}
++                  >
++                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
++                      (notifications as any)[item.id] ? 'translate-x-6' : 'translate-x-1'
++                    }`} />
++                  </button>
++                </div>
++              ))}
++            </div>
++          </div>
++        )
++      case "payments":
++        return (
++          <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++            <div className="mb-8">
++              <h3 className="text-xl font-bold text-slate-900">Payment Preferences</h3>
++              <p className="text-slate-500 text-sm">Configure how Ziro handles your transactions.</p>
++            </div>
++            
++            <div className="space-y-8">
++              <div className="space-y-3">
++                <label className="text-slate-900 font-semibold">Default currency</label>
++                <div className="w-full md:w-1/2 bg-slate-100 rounded-xl px-4 py-3 text-slate-500 font-medium">
++                  USD
++                </div>
++                <p className="text-xs text-slate-500">Fixed for this account type.</p>
++              </div>
++
++              <div className="space-y-3">
++                <label className="text-slate-900 font-semibold">Preferred settlement route</label>
++                <select className="w-full md:w-1/2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-[#4a72ff] transition-colors appearance-none font-medium" value={payments.preferredRoute} onChange={(e) => updatePayments({ preferredRoute: e.target.value as any })}>
++                  <option value="Smart Routing">Smart Routing (Recommended)</option>
++                  <option value="Traditional Rail">Traditional Rail</option>
++                  <option value="Decentralized Rail">Decentralized Rail</option>
++                </select>
++                <p className="text-xs text-slate-500">Smart Routing connects directly to Ziro's Smart Settlement Engine for optimal efficiency.</p>
++              </div>
++
++              <div className="pt-6 border-t border-slate-200/60 space-y-6">
++                <div className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">Payment confirmation</div>
++                    <div className="text-slate-500 text-sm mt-1">Require confirmation before sending funds</div>
++                  </div>
++                  <button className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-[#35E58A] opacity-50 cursor-not-allowed">
++                    <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />
++                  </button>
++                </div>
++                
++                <div className="flex items-center justify-between">
++                  <div>
++                    <div className="font-semibold text-slate-900">Security screening</div>
++                    <div className="text-slate-500 text-sm mt-1">Always screen payments before sending</div>
++                  </div>
++                  <button className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-[#35E58A] opacity-50 cursor-not-allowed">
++                    <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />
++                  </button>
++                </div>
++                <p className="text-xs text-slate-500 italic">Critical security mechanisms cannot be disabled.</p>
++              </div>
++            </div>
++          </div>
++        )
++      case "about":
++        return (
++          <div className="bg-white/60 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm">
++            <div className="mb-8">
++              <h3 className="text-xl font-bold text-slate-900">Help & Support</h3>
++              <p className="text-slate-500 text-sm">Get assistance with your Ziro account.</p>
++            </div>
++            
++            <div className="space-y-4">
++              <Link href="/dashboard/help" className="block w-full text-left bg-white border border-slate-200 rounded-2xl px-6 py-4 hover:border-[#4a72ff] hover:shadow-sm transition-all">
++                <div className="font-semibold text-slate-900">Help Center</div>
++                <div className="text-slate-500 text-sm mt-1">Read guides and FAQs.</div>
++              </Link>
++              <button className="block w-full text-left bg-white border border-slate-200 rounded-2xl px-6 py-4 hover:border-[#4a72ff] hover:shadow-sm transition-all disabled:opacity-50" disabled>
++                <div className="font-semibold text-slate-900">Contact Ziro Support</div>
++                <div className="text-slate-500 text-sm mt-1">Send us an email. (Coming soon)</div>
++              </button>
++              <button className="block w-full text-left bg-white border border-slate-200 rounded-2xl px-6 py-4 hover:border-[#4a72ff] hover:shadow-sm transition-all disabled:opacity-50" disabled>
++                <div className="font-semibold text-slate-900">Report a Payment Issue</div>
++                <div className="text-slate-500 text-sm mt-1">File a ticket for a transaction. (Coming soon)</div>
++              </button>
++              <Link href="/dashboard/consultants" className="block w-full text-left bg-[#4a72ff]/5 border border-[#4a72ff]/20 rounded-2xl px-6 py-4 hover:border-[#4a72ff] hover:bg-[#4a72ff]/10 transition-all">
++                <div className="font-semibold text-[#4a72ff]">Talk to a Consultant</div>
++                <div className="text-slate-600 text-sm mt-1">Get one-to-one human payment assistance.</div>
++              </Link>
++            </div>
++          </div>
++        )
++      default:
++        return null
++    }
++  }
++
++  return (
++    <div className="min-h-full p-6 md:p-10 lg:p-12 w-full max-w-[1200px] mx-auto">
++      
++      {/* Settings Header */}
++      <div className="mb-10">
++        <h1 className="text-[2.5rem] font-bold tracking-tight text-slate-900 leading-tight">
++          Settings
++        </h1>
++        <p className="text-slate-500 text-lg mt-2">
++          Manage your Ziro account, security, preferences, and notifications.
++        </p>
++      </div>
++
++      <div className="flex flex-col md:flex-row gap-10 items-start">
++        
++        {/* Left Nav */}
++        <div className="w-full md:w-[260px] shrink-0 space-y-2">
++          {TABS.map((tab) => (
++            <button
++              key={tab.id}
++              onClick={() => setActiveTab(tab.id)}
++              className={`w-full text-left px-5 py-3.5 rounded-2xl font-semibold text-sm transition-all ${
++                activeTab === tab.id
++                  ? "bg-white shadow-sm shadow-black/5 text-[#4a72ff]"
++                  : "text-slate-600 hover:bg-white/40 hover:text-slate-900"
++              }`}
++            >
++              {tab.label}
++            </button>
++          ))}
++        </div>
++
++        {/* Right Panel */}
++        <div className="flex-1 w-full min-w-0">
++          <AnimatePresence mode="wait">
++            <motion.div
++              key={activeTab}
++              initial={{ opacity: 0, y: 10 }}
++              animate={{ opacity: 1, y: 0 }}
++              exit={{ opacity: 0, y: -10 }}
++              transition={{ duration: 0.2 }}
++            >
++              {renderTabContent()}
++            </motion.div>
++          </AnimatePresence>
++
++          {/* Sign Out Section (Always visible below active tab content for easy access) */}
++          <div className="mt-16 bg-white/40 backdrop-blur-md rounded-[32px] p-8 border border-white/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
++            <div>
++              <h3 className="text-lg font-bold text-slate-900">Sign Out</h3>
++              <p className="text-slate-500 text-sm mt-1">Sign out of your Ziro account on this device.</p>
++            </div>
++            {!isLoggingOut ? (
++              <button onClick={() => setIsLoggingOut(true)} className="bg-slate-900 text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors whitespace-nowrap">
++                Sign Out
++              </button>
++            ) : (
++              <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-4">
++                <span className="text-sm font-semibold text-slate-900">Sign out of Ziro? You will need to sign in again.</span>
++                <button onClick={() => setIsLoggingOut(false)} className="text-slate-500 font-semibold text-sm hover:text-slate-800 transition-colors">
++                  Cancel
++                </button>
++                <button onClick={handleSignOut} className="bg-red-500 text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-red-600 transition-colors">
++                  Confirm Sign Out
++                </button>
++              </div>
++            )}
++          </div>
++
++          {/* Danger Zone */}
++          <div className="mt-8 mb-20 px-8 py-6 rounded-[32px] border border-red-500/20 bg-red-500/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
++            <div>
++              <h3 className="text-lg font-bold text-red-600">Danger Zone</h3>
++              <p className="text-red-500/80 text-sm mt-1">Permanently delete your Ziro account and associated data.</p>
++            </div>
++            <div className="flex flex-col items-end gap-2">
++              <button className="bg-red-500 text-white px-8 py-3 rounded-full font-bold text-sm opacity-50 cursor-not-allowed">
++                Delete Account
++              </button>
++              <span className="text-xs font-semibold text-red-500/70">Account deletion is currently unavailable.</span>
++            </div>
++          </div>
++          
++        </div>
++      </div>
++    </div>
++  )
++}
+diff --git a/frontend/src/store/useHelpStore.ts b/frontend/src/store/useHelpStore.ts
+new file mode 100644
+index 0000000..c1a4c0d
+--- /dev/null
++++ b/frontend/src/store/useHelpStore.ts
+@@ -0,0 +1,44 @@
++import { create } from 'zustand';
++import { persist } from 'zustand/middleware';
++
++export interface SupportTicket {
++  id: string;
++  issueType: string;
++  subject: string;
++  description: string;
++  status: 'Open' | 'Pending' | 'Resolved';
++  createdAt: string;
++}
++
++export interface HelpState {
++  tickets: SupportTicket[];
++  addTicket: (ticket: Omit<SupportTicket, 'id' | 'status' | 'createdAt'>) => string;
++}
++
++const generateId = () => {
++  return `ZIRO-${Math.floor(10000 + Math.random() * 90000)}`;
++};
++
++export const useHelpStore = create<HelpState>()(
++  persist(
++    (set) => ({
++      tickets: [],
++      addTicket: (ticketData) => {
++        const id = generateId();
++        const newTicket: SupportTicket = {
++          ...ticketData,
++          id,
++          status: 'Open',
++          createdAt: new Date().toISOString(),
++        };
++        set((state) => ({
++          tickets: [newTicket, ...state.tickets],
++        }));
++        return id;
++      },
++    }),
++    {
++      name: 'ziro-help-storage',
++    }
++  )
++);
+diff --git a/frontend/src/store/useSettingsStore.ts b/frontend/src/store/useSettingsStore.ts
+index 451c50b..088d0bf 100644
+--- a/frontend/src/store/useSettingsStore.ts
++++ b/frontend/src/store/useSettingsStore.ts
+@@ -4,30 +4,18 @@ import { persist } from 'zustand/middleware';
+ export interface ProfileSettings {
+   name: string;
+   email: string;
++  username: string;
+   phone: string;
+   location: string;
++  country: string;
+   avatar: string;
+   archetype: string;
+ }
+ 
+-export interface AIMentorSettings {
+-  knowledgeLevel: 'Beginner' | 'Intermediate' | 'Advanced';
+-  responseLength: 'Short' | 'Balanced' | 'Detailed';
+-  aiPersonality: 'Friendly' | 'Professional';
+-  rememberChatHistory: boolean;
+-}
+-
+-export interface FinancialSettings {
+-  preferredCurrency: 'USD' | 'INR' | 'EUR' | 'GBP';
+-  riskTolerance: 'Low' | 'Medium' | 'High';
+-  budgetReminders: boolean;
+-  exchangeRates: Record<string, number>;
+-}
+-
+-export interface NotificationSettings {
+-  goalReminders: boolean;
+-  scamAlerts: boolean;
+-  weeklySummary: boolean;
++export interface AppearanceSettings {
++  theme: 'Light' | 'Dark' | 'System';
++  language: 'English' | string;
++  reduceAnimations: boolean;
+ }
+ 
+ export interface SecuritySession {
+@@ -39,70 +27,91 @@ export interface SecuritySession {
+   isCurrent: boolean;
+ }
+ 
+-export interface AppearanceSettings {
+-  theme: 'Light' | 'Dark' | 'System';
+-  reduceAnimations: boolean;
++export interface PrivacySettings {
++  profileVisibility: 'Public' | 'Private';
++  transactionPrivacy: 'Public' | 'Private';
++}
++
++export interface NotificationSettings {
++  paymentConfirmations: boolean;
++  paymentSecurityAlerts: boolean;
++  transferStatusUpdates: boolean;
++  trustScoreUpdates: boolean;
++  consultantNotifications: boolean;
++  productUpdates: boolean;
++}
++
++export interface ZiroPaymentSettings {
++  preferredRoute: 'Smart Routing' | 'Traditional Rail' | 'Decentralized Rail';
++  requireConfirmation: boolean;
++  securityScreening: boolean;
+ }
+ 
+ export interface SettingsState {
+   profile: ProfileSettings;
+-  aiMentor: AIMentorSettings;
+-  financial: FinancialSettings;
+-  notifications: NotificationSettings;
+-  sessions: SecuritySession[];
+   appearance: AppearanceSettings;
++  sessions: SecuritySession[];
++  privacy: PrivacySettings;
++  notifications: NotificationSettings;
++  payments: ZiroPaymentSettings;
+ 
+   // Actions
+   updateProfile: (data: Partial<ProfileSettings>) => void;
+-  updateAIMentor: (data: Partial<AIMentorSettings>) => void;
+-  updateFinancial: (data: Partial<FinancialSettings>) => void;
+-  updateNotifications: (data: Partial<NotificationSettings>) => void;
+   updateAppearance: (data: Partial<AppearanceSettings>) => void;
+-  updateExchangeRates: (rates: Record<string, number>) => void;
++  updatePrivacy: (data: Partial<PrivacySettings>) => void;
++  updateNotifications: (data: Partial<NotificationSettings>) => void;
++  updatePayments: (data: Partial<ZiroPaymentSettings>) => void;
+   terminateSession: (id: string) => void;
+   terminateAllOtherSessions: () => void;
+   resetAllSettings: () => void;
+   setSessions: (sessions: SecuritySession[]) => void;
+ }
+ 
+-const DEFAULT_SESSIONS: SecuritySession[] = [];
++const DEFAULT_SESSIONS: SecuritySession[] = [
++  {
++    id: '1',
++    device: 'Chrome · Windows',
++    ip: '192.168.1.1',
++    location: 'Current session',
++    lastActive: 'Active now',
++    isCurrent: true
++  }
++];
+ 
+ const DEFAULT_SETTINGS = {
+   profile: {
+     name: '',
+     email: '',
++    username: '',
+     phone: '',
+     location: '',
++    country: '',
+     avatar: '',
+     archetype: 'The Guardian',
+   },
+-  aiMentor: {
+-    knowledgeLevel: 'Intermediate' as const,
+-    responseLength: 'Balanced' as const,
+-    aiPersonality: 'Friendly' as const,
+-    rememberChatHistory: true,
++  appearance: {
++    theme: 'System' as const,
++    language: 'English',
++    reduceAnimations: false,
+   },
+-  financial: {
+-    preferredCurrency: 'USD' as const,
+-    riskTolerance: 'Medium' as const,
+-    budgetReminders: true,
+-    exchangeRates: {
+-      USD: 1,
+-      INR: 83,
+-      EUR: 0.92,
+-      GBP: 0.79
+-    },
++  sessions: DEFAULT_SESSIONS,
++  privacy: {
++    profileVisibility: 'Private' as const,
++    transactionPrivacy: 'Private' as const,
+   },
+   notifications: {
+-    goalReminders: true,
+-    scamAlerts: true,
+-    weeklySummary: true,
+-  },
+-  sessions: DEFAULT_SESSIONS,
+-  appearance: {
+-    theme: 'Light' as const,
+-    reduceAnimations: false,
++    paymentConfirmations: true,
++    paymentSecurityAlerts: true,
++    transferStatusUpdates: true,
++    trustScoreUpdates: true,
++    consultantNotifications: true,
++    productUpdates: false,
+   },
++  payments: {
++    preferredRoute: 'Smart Routing' as const,
++    requireConfirmation: true,
++    securityScreening: true,
++  }
+ };
+ 
+ export const useSettingsStore = create<SettingsState>()(
+@@ -127,14 +136,14 @@ export const useSettingsStore = create<SettingsState>()(
+           return { profile: newProfile };
+         }),
+ 
+-      updateAIMentor: (data) =>
++      updateAppearance: (data) =>
+         set((state) => ({
+-          aiMentor: { ...state.aiMentor, ...data },
++          appearance: { ...state.appearance, ...data },
+         })),
+ 
+-      updateFinancial: (data) =>
++      updatePrivacy: (data) =>
+         set((state) => ({
+-          financial: { ...state.financial, ...data },
++          privacy: { ...state.privacy, ...data },
+         })),
+ 
+       updateNotifications: (data) =>
+@@ -142,14 +151,9 @@ export const useSettingsStore = create<SettingsState>()(
+           notifications: { ...state.notifications, ...data },
+         })),
+ 
+-      updateAppearance: (data) =>
+-        set((state) => ({
+-          appearance: { ...state.appearance, ...data },
+-        })),
+-
+-      updateExchangeRates: (rates) =>
++      updatePayments: (data) =>
+         set((state) => ({
+-          financial: { ...state.financial, exchangeRates: { ...state.financial.exchangeRates, ...rates } },
++          payments: { ...state.payments, ...data },
+         })),
+ 
+       terminateSession: (id) =>
+@@ -167,7 +171,7 @@ export const useSettingsStore = create<SettingsState>()(
+       resetAllSettings: () => set(DEFAULT_SETTINGS),
+     }),
+     {
+-      name: 'finwise-settings-storage',
++      name: 'ziro-settings-storage',
+     }
+   )
+ );

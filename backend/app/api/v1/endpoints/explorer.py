@@ -65,15 +65,15 @@ async def get_explorer_ui():
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
         <style>
             :root {
-                --bg: #0b0f19;
-                --surface: rgba(255, 255, 255, 0.03);
-                --border: rgba(255, 255, 255, 0.08);
-                --text: #e2e8f0;
-                --text-muted: #94a3b8;
+                --bg: #f8fafc;
+                --surface: rgba(255, 255, 255, 0.85);
+                --border: rgba(0, 0, 0, 0.08);
+                --text: #0f172a;
+                --text-muted: #64748b;
                 --primary: #3b82f6;
-                --primary-glow: rgba(59, 130, 246, 0.5);
-                --success: #10b981;
-                --pending: #f59e0b;
+                --primary-glow: rgba(59, 130, 246, 0.2);
+                --success: #059669;
+                --pending: #d97706;
                 --font-sans: 'Inter', sans-serif;
                 --font-mono: 'JetBrains Mono', monospace;
             }
@@ -92,8 +92,8 @@ async def get_explorer_ui():
                 display: flex;
                 flex-direction: column;
                 background-image: 
-                    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
-                    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.1), transparent 25%);
+                    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
+                    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
                 background-attachment: fixed;
             }
 
@@ -103,49 +103,32 @@ async def get_explorer_ui():
                 align-items: center;
                 justify-content: space-between;
                 border-bottom: 1px solid var(--border);
-                background: rgba(11, 15, 25, 0.7);
+                background: rgba(255, 255, 255, 0.9);
                 backdrop-filter: blur(12px);
                 position: sticky;
                 top: 0;
                 z-index: 100;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.03);
             }
 
             .logo-container {
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 16px;
             }
 
-            .logo-icon {
-                width: 36px;
-                height: 36px;
-                background: linear-gradient(135deg, var(--primary), #8b5cf6);
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 0 20px var(--primary-glow);
-                animation: pulse 3s infinite alternate;
-            }
-            
-            .logo-icon svg {
-                width: 20px;
-                height: 20px;
-                fill: white;
-            }
-
-            @keyframes pulse {
-                0% { box-shadow: 0 0 15px var(--primary-glow); transform: scale(1); }
-                100% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.6); transform: scale(1.05); }
+            .logo-container img {
+                height: 28px;
+                filter: brightness(0); /* Ensure it's black for light mode */
             }
 
             h1 {
-                font-size: 1.5rem;
-                font-weight: 700;
+                font-size: 1.4rem;
+                font-weight: 600;
                 letter-spacing: -0.5px;
-                background: linear-gradient(to right, #fff, #94a3b8);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
+                color: var(--text);
+                border-left: 2px solid var(--border);
+                padding-left: 16px;
             }
 
             .network-status {
@@ -155,10 +138,10 @@ async def get_explorer_ui():
                 font-size: 0.875rem;
                 font-weight: 500;
                 color: var(--success);
-                background: rgba(16, 185, 129, 0.1);
+                background: rgba(5, 150, 105, 0.1);
                 padding: 6px 12px;
                 border-radius: 20px;
-                border: 1px solid rgba(16, 185, 129, 0.2);
+                border: 1px solid rgba(5, 150, 105, 0.2);
             }
 
             .dot {
@@ -166,7 +149,7 @@ async def get_explorer_ui():
                 height: 8px;
                 background-color: var(--success);
                 border-radius: 50%;
-                box-shadow: 0 0 8px var(--success);
+                box-shadow: 0 0 8px rgba(5, 150, 105, 0.5);
             }
 
             main {
@@ -191,12 +174,13 @@ async def get_explorer_ui():
                 padding: 1.5rem;
                 backdrop-filter: blur(10px);
                 transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
             }
 
             .stat-card:hover {
-                transform: translateY(-5px);
-                border-color: rgba(59, 130, 246, 0.4);
-                box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.2);
+                transform: translateY(-2px);
+                border-color: rgba(59, 130, 246, 0.3);
+                box-shadow: 0 10px 20px -10px rgba(59, 130, 246, 0.15);
             }
 
             .stat-title {
@@ -211,7 +195,7 @@ async def get_explorer_ui():
             .stat-value {
                 font-size: 2rem;
                 font-weight: 700;
-                color: #fff;
+                color: var(--text);
                 font-family: var(--font-mono);
             }
 
@@ -221,14 +205,14 @@ async def get_explorer_ui():
                 border-radius: 16px;
                 backdrop-filter: blur(10px);
                 overflow: hidden;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             }
 
             .table-header-row {
                 display: grid;
                 grid-template-columns: 2fr 1fr 2fr 2fr 1fr 1fr 1.5fr;
                 padding: 1rem 1.5rem;
-                background: rgba(255, 255, 255, 0.02);
+                background: rgba(0, 0, 0, 0.02);
                 border-bottom: 1px solid var(--border);
                 font-size: 0.75rem;
                 text-transform: uppercase;
@@ -246,7 +230,7 @@ async def get_explorer_ui():
                 display: grid;
                 grid-template-columns: 2fr 1fr 2fr 2fr 1fr 1fr 1.5fr;
                 padding: 1.25rem 1.5rem;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+                border-bottom: 1px solid var(--border);
                 align-items: center;
                 transition: background 0.2s ease;
                 animation: slideIn 0.5s ease forwards;
@@ -254,7 +238,7 @@ async def get_explorer_ui():
             }
 
             .tx-row:hover {
-                background: rgba(255, 255, 255, 0.05);
+                background: rgba(0, 0, 0, 0.015);
             }
 
             .tx-row:last-child {
@@ -282,8 +266,8 @@ async def get_explorer_ui():
             }
             
             .hash:hover {
-                color: #60a5fa;
-                text-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+                color: #2563eb;
+                text-decoration: underline;
             }
 
             .badge {
@@ -297,15 +281,15 @@ async def get_explorer_ui():
             }
 
             .badge.settled {
-                background: rgba(16, 185, 129, 0.1);
+                background: rgba(5, 150, 105, 0.1);
                 color: var(--success);
-                border: 1px solid rgba(16, 185, 129, 0.2);
+                border: 1px solid rgba(5, 150, 105, 0.2);
             }
 
             .badge.pending {
-                background: rgba(245, 158, 11, 0.1);
+                background: rgba(217, 119, 6, 0.1);
                 color: var(--pending);
-                border: 1px solid rgba(245, 158, 11, 0.2);
+                border: 1px solid rgba(217, 119, 6, 0.2);
             }
 
             .loader {
@@ -317,7 +301,7 @@ async def get_explorer_ui():
             .spinner {
                 width: 40px;
                 height: 40px;
-                border: 3px solid rgba(255,255,255,0.1);
+                border: 3px solid rgba(0,0,0,0.1);
                 border-radius: 50%;
                 border-top-color: var(--primary);
                 animation: spin 1s ease-in-out infinite;
@@ -332,10 +316,8 @@ async def get_explorer_ui():
     <body>
         <header>
             <div class="logo-container">
-                <div class="logo-icon">
-                    <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </div>
-                <h1>Ziro L2 Scan</h1>
+                <img src="http://localhost:3000/logo.png" alt="Ziro Logo">
+                <h1>L2 Scan</h1>
             </div>
             <div class="network-status">
                 <div class="dot"></div>
@@ -411,12 +393,12 @@ async def get_explorer_ui():
 
                         row.innerHTML = `
                             <div class="mono-text hash" title="${tx.tx_hash}">${truncate(tx.tx_hash)}</div>
-                            <div class="mono-text" style="color: #94a3b8;">${tx.block_number}</div>
+                            <div class="mono-text" style="color: var(--text-muted);">${tx.block_number}</div>
                             <div class="mono-text hash" title="${tx.from_address}">${truncate(tx.from_address)}</div>
                             <div class="mono-text hash" title="${tx.to_address}">${truncate(tx.to_address)}</div>
                             <div class="mono-text hash" title="Encrypted Amount">0x${btoa(tx.amount.toString()).substring(0,8)}...</div>
                             <div><span class="badge ${statusClass}">${statusText}</span></div>
-                            <div style="color: #94a3b8; font-size: 0.875rem;">${formatDate(tx.timestamp)}</div>
+                            <div style="color: var(--text-muted); font-size: 0.875rem;">${formatDate(tx.timestamp)}</div>
                         `;
                         txList.appendChild(row);
                     });
@@ -432,11 +414,10 @@ async def get_explorer_ui():
             // Initial load
             setTimeout(fetchTransactions, 800);
             
-            // Poll every 5 seconds
-            setInterval(fetchTransactions, 5000);
+            // Poll every 2 seconds
+            setInterval(fetchTransactions, 2000);
         </script>
     </body>
     </html>
     """
     return HTMLResponse(content=html_content)
-

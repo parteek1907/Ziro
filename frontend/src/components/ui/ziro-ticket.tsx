@@ -89,7 +89,7 @@ export function ZiroTicket({ paymentId, amount, fees, currency, recipient, fundi
           {/* Faux Barcode */}
           <div className="w-full flex justify-between h-12 opacity-40">
             {Array.from({ length: 40 }).map((_, i) => (
-              <div key={i} className="bg-slate-800" style={{ width: Math.random() * 4 + 1 + 'px' }} />
+              <div key={i} className="bg-slate-800" style={{ width: ((((i * 13) % 40) / 40) * 4 + 1) + 'px' }} />
             ))}
           </div>
           

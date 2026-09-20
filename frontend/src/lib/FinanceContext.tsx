@@ -1,6 +1,9 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react"
+import { useAuth } from "@/lib/AuthContext"
+import { evaluateTrustScore } from "@/lib/api"
+import type { TrustScoreResponse } from "@/lib/api"
 
 export type Transaction = {
   id: string
@@ -14,16 +17,9 @@ export type Transaction = {
 }
 
 const INITIAL_TRANSACTIONS: Transaction[] = [
-  { id: "tx-1",  type: "Settlement", to: "Maria Garcia",   route: "USD → MXN", amount: "-$450.00",    status: "Completed", time: "12 mins ago",   ref: "ZR-7842" },
-  { id: "tx-2",  type: "Transfer",   to: "James Wilson",    route: "USD → INR", amount: "+$2,000.00",  status: "Completed", time: "34 mins ago",   ref: "ZR-7841" },
-  { id: "tx-3",  type: "Payment",    to: "L2 Wallet",       route: "USD → KES", amount: "-$124.50",    status: "Pending",   time: "1 hour ago",    ref: "ZR-7840" },
-  { id: "tx-4",  type: "Transfer",   to: "Amara",           route: "USD → KES", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
-  { id: "tx-5",  type: "Settlement", to: "Cloud Infra LLC", route: "USD → USD", amount: "-$320.00",    status: "Completed", time: "5 hours ago",   ref: "ZR-7838" },
-  { id: "tx-6",  type: "Transfer",   to: "Riya Kapoor",     route: "USD → INR", amount: "+$5,000.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7837" },
-  { id: "tx-7",  type: "Payment",    to: "Stripe Inc",      route: "USD → USD", amount: "-$99.00",     status: "Completed", time: "1 day ago",     ref: "ZR-7836" },
-  { id: "tx-8",  type: "Settlement", to: "0x7a...9b",       route: "ETH → USD", amount: "-$12,000.00", status: "Completed", time: "2 days ago",    ref: "ZR-7835" },
-  { id: "tx-9",  type: "Transfer",   to: "Carlos M.",       route: "USD → MXN", amount: "-$750.00",    status: "Failed",    time: "3 days ago",    ref: "ZR-7834" },
-  { id: "tx-10", type: "Transfer",   to: "L2 Wallet",       route: "USD → KES", amount: "+$10,000.00", status: "Completed", time: "1 week ago",    ref: "ZR-7833" },
+  { id: "tx-1",  type: "Transfer",   to: "Amara",           route: "USD → KES", amount: "-$8,400.00",  status: "Completed", time: "2 hours ago",   ref: "ZR-7839" },
+  { id: "tx-2",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$1,200.00",  status: "Completed", time: "1 day ago",     ref: "ZR-7838" },
+  { id: "tx-3",  type: "Transfer",   to: "Darsh",           route: "USD → INR", amount: "-$4,500.00",  status: "Completed", time: "3 days ago",    ref: "ZR-7837" },
 ]
 
 interface FinanceContextType {
@@ -31,6 +27,10 @@ interface FinanceContextType {
   transactions: Transaction[]
   deductBalance: (amountInUSD: number) => void
   addTransaction: (tx: Transaction) => void
+  trustScore: TrustScoreResponse | null
+  loadingTrust: boolean
+  trustError: boolean
+  fetchTrustScore: () => Promise<void>
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined)
@@ -39,27 +39,77 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [totalBalance, setTotalBalance] = useState<number>(54904.80)
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS)
   const [isLoaded, setIsLoaded] = useState(false)
+  const { user } = useAuth()
+  
+  const [trustScore, setTrustScore] = useState<TrustScoreResponse | null>(null)
+  const [loadingTrust, setLoadingTrust] = useState(true)
+  const [trustError, setTrustError] = useState(false)
+
+  const fetchTrustScore = useCallback(async () => {
+    const txCount = transactions.length;
+    const paymentConsistency = Math.min(100, 50 + txCount * 5);
+    const transactionHistory = Math.min(100, 40 + txCount * 10);
+    const communityTrust = 92;
+    const score = Math.min(850, 600 + txCount * 15);
+    let grade = "Poor";
+    if (score >= 750) grade = "Excellent";
+    else if (score >= 700) grade = "Good";
+    else if (score >= 650) grade = "Fair";
+
+    const fallbackData: TrustScoreResponse = {
+      trust_score: score,
+      grade: grade,
+      score_breakdown: { payment_consistency: paymentConsistency, transaction_history: transactionHistory, community_trust: communityTrust },
+      recommendation: `Based on your ${txCount} recent transfers, your score is ${grade}. Keep maintaining consistent payment behavior to improve it further.`,
+    };
+
+    if (!user) {
+      setLoadingTrust(false)
+      setTrustError(true)
+      setTrustScore(fallbackData)
+      return
+    }
+    setLoadingTrust(true)
+    setTrustError(false)
+    try {
+      const data = await evaluateTrustScore(user.uid, "0xDemoWallet123")
+      setTrustScore(data)
+    } catch {
+      setTrustError(true)
+      setTrustScore(fallbackData)
+    } finally {
+      setLoadingTrust(false)
+    }
+  }, [user, transactions.length])
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchTrustScore()
+    })
+  }, [fetchTrustScore])
 
   // Load from local storage on mount
   useEffect(() => {
-    try {
-      const storedBalance = localStorage.getItem("ziro_totalBalance")
-      if (storedBalance) setTotalBalance(parseFloat(storedBalance))
+    Promise.resolve().then(() => {
+      try {
+        const storedBalance = localStorage.getItem("ziro_totalBalance_v2")
+        if (storedBalance) setTotalBalance(parseFloat(storedBalance))
 
-      const storedTx = localStorage.getItem("ziro_transactions")
-      if (storedTx) setTransactions(JSON.parse(storedTx))
-    } catch (e) {
-      console.error("Failed to load finance state", e)
-    } finally {
-      setIsLoaded(true)
-    }
+        const storedTx = localStorage.getItem("ziro_transactions_v2")
+        if (storedTx) setTransactions(JSON.parse(storedTx))
+      } catch (e) {
+        console.error("Failed to load finance state", e)
+      } finally {
+        setIsLoaded(true)
+      }
+    });
   }, [])
 
   // Sync to local storage on changes
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("ziro_totalBalance", totalBalance.toString())
-      localStorage.setItem("ziro_transactions", JSON.stringify(transactions))
+      localStorage.setItem("ziro_totalBalance_v2", totalBalance.toString())
+      localStorage.setItem("ziro_transactions_v2", JSON.stringify(transactions))
     }
   }, [totalBalance, transactions, isLoaded])
 
@@ -72,7 +122,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <FinanceContext.Provider value={{ totalBalance, transactions, deductBalance, addTransaction }}>
+    <FinanceContext.Provider value={{ totalBalance, transactions, deductBalance, addTransaction, trustScore, loadingTrust, trustError, fetchTrustScore }}>
       {children}
     </FinanceContext.Provider>
   )

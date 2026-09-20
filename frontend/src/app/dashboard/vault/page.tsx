@@ -38,8 +38,10 @@ export default function VaultPage() {
   const [note, setNote]           = useState("")
 
   useEffect(() => {
-    setIsOnline(navigator.onLine)
-    setQueue(getQueue())
+    Promise.resolve().then(() => {
+      setIsOnline(navigator.onLine)
+      setQueue(getQueue())
+    })
 
     const handleOnline  = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
@@ -52,12 +54,7 @@ export default function VaultPage() {
     }
   }, [])
 
-  // Auto-sync when coming back online
-  useEffect(() => {
-    if (isOnline && queue.length > 0) {
-      handleSync()
-    }
-  }, [isOnline]) // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const queueTransaction = useCallback(() => {
     if (!recipient.trim() || !amount) return
@@ -102,6 +99,12 @@ export default function VaultPage() {
     }
   }, [user, syncing, queue])
 
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && queue.length > 0) {
+      handleSync()
+    }
+  }, [isOnline, handleSync, queue.length])
   const removeFromQueue = (id: string) => {
     const updated = queue.filter((tx) => tx.id !== id)
     setQueue(updated)

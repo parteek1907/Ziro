@@ -88,19 +88,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Local / Dev Mode fallback when Firebase keys are not in .env.local
     console.info("[AuthContext] Running in Local Dev Mode (Firebase keys not detected in .env.local).");
-    try {
-      const stored = typeof window !== "undefined" ? localStorage.getItem("ziro_user") : null;
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        setUser(DEFAULT_DEV_USER);
-        if (typeof window !== "undefined") {
-          localStorage.setItem("ziro_user", JSON.stringify(DEFAULT_DEV_USER));
+    Promise.resolve().then(() => {
+      try {
+        const stored = typeof window !== "undefined" ? localStorage.getItem("ziro_user") : null;
+        if (stored) {
+          setUser(JSON.parse(stored));
+        } else {
+          setUser(DEFAULT_DEV_USER);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("ziro_user", JSON.stringify(DEFAULT_DEV_USER));
+          }
         }
+      } catch {
+        setUser(DEFAULT_DEV_USER);
       }
-    } catch {
-      setUser(DEFAULT_DEV_USER);
-    }
+    });
     setLoading(false);
   }, []);
 

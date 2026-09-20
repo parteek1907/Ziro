@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { motion, useMotionValue, useTransform, animate } from "framer-motion"
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/lib/AuthContext"
-import { evaluateTrustScore } from "@/lib/api"
-import type { TrustScoreResponse } from "@/lib/api"
+import { useFinance } from "@/lib/FinanceContext"
 import Link from "next/link"
+import SplitText from "@/components/ui/SplitText"
 
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`bg-slate-200/60 animate-pulse rounded-lg ${className}`} />
@@ -42,49 +42,29 @@ const listItemVariants = {
   show: { opacity: 1, x: 0, transition: springConfig }
 }
 
+let hasSeenIntro = false;
+
 export default function TrustScorePage() {
   const { user } = useAuth()
-  const [data, setData]       = useState<TrustScoreResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(false)
-
-  const DEMO_WALLET = "0xDemoWallet123"
-
-  const fetch = useCallback(async () => {
-    if (!user) {
-      setLoading(false)
-      setError(true)
-      setData({
-        trust_score: 740,
-        grade: "Excellent",
-        score_breakdown: { payment_consistency: 88, transaction_history: 76, community_trust: 92 },
-        recommendation: "Keep maintaining consistent payment behavior to improve your score further.",
-      })
-      return
-    }
-    setLoading(true); setError(false)
-    try {
-      const res = await evaluateTrustScore(user.uid, DEMO_WALLET)
-      setData(res)
-    } catch {
-      setError(true)
-      setData({
-        trust_score: 740,
-        grade: "Excellent",
-        score_breakdown: { payment_consistency: 88, transaction_history: 76, community_trust: 92 },
-        recommendation: "Keep maintaining consistent payment behavior to improve your score further.",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }, [user])
-
-  useEffect(() => { fetch() }, [fetch])
+  const { trustScore: data, loadingTrust: loading, trustError: error, fetchTrustScore: fetch } = useFinance()
 
   const score = data?.trust_score ?? 0
   const grade = data?.grade ?? "—"
   const breakdown = data?.score_breakdown
   const recommendation = data?.recommendation
+
+  // Intro logic
+  const [showIntro, setShowIntro] = useState(!hasSeenIntro)
+
+  useEffect(() => {
+    hasSeenIntro = true
+  }, [])
+
+  const handleIntroComplete = useCallback(() => {
+    setTimeout(() => {
+      setShowIntro(false)
+    }, 1500)
+  }, [])
 
   // Arc gauge parameters
   const RADIUS = 80
@@ -93,7 +73,34 @@ export default function TrustScorePage() {
   const dashOffset = CIRCUMFERENCE * (1 - progress)
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8 relative">
+    <div className="relative min-h-[80vh] flex flex-col justify-center">
+      <AnimatePresence mode="wait">
+        {showIntro ? (
+          <motion.div
+            key="intro"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeOut" } }}
+            className="absolute inset-0 flex items-center justify-center p-8 z-50"
+          >
+            <div className="max-w-4xl mx-auto text-center flex flex-col items-center justify-center h-full">
+              <SplitText 
+                text={"Your financial reputation,\nfinally decentralized.\nTrustScore uses your transfer history\nto build a global profile."}
+                className="text-3xl md:text-4xl font-bold text-slate-800 leading-[1.6]"
+                delay={35}
+                duration={0.9}
+                onLetterAnimationComplete={handleIntroComplete}
+              />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="space-y-6 max-w-7xl mx-auto px-8 md:px-12 py-8 relative"
+          >
       {/* Background Ambient Glows */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] pointer-events-none -z-10" />
       <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-400/10 rounded-full blur-[100px] pointer-events-none -z-10" />
@@ -276,6 +283,9 @@ export default function TrustScorePage() {
           </div>
         </motion.div>
       </motion.div>
+      </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
