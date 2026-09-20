@@ -67,24 +67,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       recommendation: `Based on your ${txCount} recent transfers, your score is ${grade}. Keep maintaining consistent payment behavior to improve it further.`,
     };
 
-    if (!user) {
-      setLoadingTrust(false)
-      setTrustError(true)
-      setTrustScore(fallbackData)
-      return
-    }
+    // We calculate TrustScore locally on the frontend in realtime based on transfers
+    // to ensure it works accurately on Vercel without requiring the Python backend.
     setLoadingTrust(true)
     setTrustError(false)
-    try {
-      const data = await evaluateTrustScore(user.uid, "0xDemoWallet123")
-      setTrustScore(data)
-    } catch {
-      setTrustError(true)
+    
+    // Simulate a tiny network delay for the UI skeleton
+    setTimeout(() => {
       setTrustScore(fallbackData)
-    } finally {
       setLoadingTrust(false)
-    }
-  }, [user, transactions.length])
+    }, 400)
+  }, [transactions.length])
 
   useEffect(() => {
     Promise.resolve().then(() => {
