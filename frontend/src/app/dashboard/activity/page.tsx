@@ -98,31 +98,35 @@ export default function ActivityPage() {
         </div>
 
         {/* Table header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          <div className="col-span-1">TYPE</div>
-          <div className="col-span-3">RECIPIENT</div>
-          <div className="col-span-2">ROUTE</div>
-          <div className="col-span-2">REF</div>
-          <div className="col-span-2">TIME</div>
-          <div className="col-span-1 text-right">AMOUNT</div>
-          <div className="col-span-1 text-right">STATUS</div>
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y divide-black/5">
-          {filtered.length === 0 ? (
-            <div className="py-16 text-center text-slate-400 text-sm font-medium">No transactions match your filters.</div>
-          ) : filtered.map((tx) => (
-            <div key={tx.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer">
-              <div className="col-span-1 text-xs font-bold text-slate-600">{tx.type}</div>
-              <div className="col-span-3 text-xs font-bold text-slate-800">{tx.to}</div>
-              <div className="col-span-2 text-xs text-slate-500 font-medium">{tx.route}</div>
-              <div className="col-span-2 text-xs text-slate-400 font-medium">{tx.ref}</div>
-              <div className="col-span-2 text-xs text-slate-500 font-medium">{tx.time}</div>
-              <div className={`col-span-1 text-xs font-bold text-right ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</div>
-              <div className="col-span-1 flex justify-end"><StatusBadge status={tx.status} /></div>
+        <div className="overflow-x-auto">
+          <div className="min-w-[700px]">
+            <div className="grid grid-cols-[1.5fr_2fr_1.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-3 border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div>TYPE</div>
+              <div>RECIPIENT</div>
+              <div>ROUTE</div>
+              <div>REF</div>
+              <div>TIME</div>
+              <div className="text-right">AMOUNT</div>
+              <div className="text-right">STATUS</div>
             </div>
-          ))}
+
+            {/* Rows */}
+            <div className="divide-y divide-black/5">
+              {filtered.length === 0 ? (
+                <div className="py-16 text-center text-slate-400 text-sm font-medium">No transactions match your filters.</div>
+              ) : filtered.map((tx) => (
+                <div key={tx.id} className="grid grid-cols-[1.5fr_2fr_1.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer">
+                  <div className="text-xs font-bold text-slate-600 truncate">{tx.type}</div>
+                  <div className="text-xs font-bold text-slate-800 truncate">{tx.to}</div>
+                  <div className="text-xs text-slate-500 font-medium truncate">{tx.route}</div>
+                  <div className="text-xs text-slate-400 font-medium truncate">{tx.ref}</div>
+                  <div className="text-xs text-slate-500 font-medium whitespace-nowrap">{tx.time}</div>
+                  <div className={`text-xs font-bold text-right whitespace-nowrap ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</div>
+                  <div className="flex justify-end"><StatusBadge status={tx.status} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>
