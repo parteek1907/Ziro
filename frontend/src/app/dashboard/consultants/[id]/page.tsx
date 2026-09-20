@@ -79,7 +79,7 @@ export default function ConsultantProfilePage({ params }: { params: Promise<{ id
         route: "USD",
         amount: `-$${totalAmount.toFixed(2)}`,
         status: "Completed",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toISOString(),
         ref: `CS-${Math.floor(Math.random() * 10000)}`
       })
       router.push("/dashboard/consultants/my-consultations")

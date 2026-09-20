@@ -459,7 +459,7 @@ export default function TransfersPage() {
       addTransaction({
         id, type: "Transfer", to: selectedRecipient?.name || "", route: currency,
         amount: `-${sym}${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        status: "Completed", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), ref,
+        status: "Completed", time: new Date().toISOString(), ref,
       })
 
       await new Promise(r => setTimeout(r, 500))

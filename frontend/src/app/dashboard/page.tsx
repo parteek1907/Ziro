@@ -7,6 +7,7 @@ import { getBalance } from "@/lib/api"
 import type { BalanceResponse } from "@/lib/api"
 import Link from "next/link"
 import { useFinance } from "@/lib/FinanceContext"
+import { RelativeTime } from "@/components/ui/RelativeTime"
 
 // ─── Skeleton loader ──────────────────────────────────────────
 function Skeleton({ className = "" }: { className?: string }) {
@@ -341,7 +342,7 @@ export default function DashboardOverview() {
                       <td className="px-4 py-4 text-xs font-bold text-slate-800 truncate">{tx.to}</td>
                       <td className="px-4 py-4 text-xs text-slate-500 font-medium truncate">{tx.route}</td>
                       <td className="px-4 py-4 text-xs text-slate-400 font-medium truncate">{tx.ref}</td>
-                      <td className="px-4 py-4 text-xs text-slate-500 font-medium whitespace-nowrap">{tx.time}</td>
+                      <td className="px-4 py-4 text-xs text-slate-500 font-medium whitespace-nowrap"><RelativeTime timeStr={tx.time} /></td>
                       <td className={`px-4 py-4 text-xs font-bold text-right whitespace-nowrap ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</td>
                       <td className="px-4 py-4 text-right">
                         {tx.status === "Completed" ? (
