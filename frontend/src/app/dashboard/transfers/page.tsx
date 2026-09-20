@@ -303,7 +303,10 @@ export default function TransfersPage() {
 
   const [txId, setTxId] = useState("")
   const [txRef, setTxRef] = useState("")
-  const idempotencyKey = useRef(`ziro-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const idempotencyKey = useRef("")
+  useEffect(() => {
+    idempotencyKey.current = `ziro-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  }, [])
   const isSubmitting = useRef(false)
 
   const [processingStage, setProcessingStage] = useState(0) // 0: authorize, 1: secure, 2: settle, 3: done
@@ -329,7 +332,7 @@ export default function TransfersPage() {
       if (key === "back") return prev.slice(0, -1)
       if (key === "." && prev.includes(".")) return prev
       if (key === "." && prev === "") return "0."
-      let next = prev + key
+      const next = prev + key
       const parts = next.split(".")
       if (parts[1] && parts[1].length > 2) return prev
       if (parseFloat(next) > 1000000) return prev

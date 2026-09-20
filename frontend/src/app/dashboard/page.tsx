@@ -104,7 +104,7 @@ export default function DashboardOverview() {
   }, [user])
 
   useEffect(() => {
-    fetchWallet()
+    Promise.resolve().then(() => fetchWallet())
   }, [fetchWallet])
 
   const handleExport = async () => {

@@ -150,8 +150,8 @@ export async function getBalance(
 }
 
 /** Fetch user's wallets */
-export async function getUserWallets(): Promise<unknown[]> {
-  return request<unknown[]>("/api/v1/wallets")
+export async function getUserWallets(): Promise<any[]> {
+  return request<any[]>("/api/v1/wallets")
 }
 
 /** Create a payment */
