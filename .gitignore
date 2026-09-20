@@ -27,3 +27,6 @@ Thumbs.db
 # Antigravity sync backups
 .sync_backup/
 
+# Antigravity Agent Configurations
+.agent/
+.agents/
