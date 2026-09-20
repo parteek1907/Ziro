@@ -55,6 +55,49 @@ export default function LoginPage() {
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#2161E8]/10 blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#35E58A]/10 blur-[120px] pointer-events-none"></div>
         
+        {/* Behance Chrome OS Style Animation in empty space */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+          {/* Blue Sphere */}
+          <motion.div
+            animate={{ 
+              y: [-20, 20, -20],
+              x: [-10, 10, -10],
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-[45%] top-[15%] w-[280px] h-[280px] rounded-full bg-gradient-to-br from-[#4285F4] to-[#1A73E8] shadow-[0_15px_30px_rgba(66,133,244,0.15)]"
+          />
+          {/* Red Sphere */}
+          <motion.div
+            animate={{ 
+              y: [15, -15, 15],
+              x: [10, -10, 10],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-[15%] top-[25%] w-[140px] h-[140px] rounded-full bg-gradient-to-br from-[#EA4335] to-[#D93025] shadow-[0_15px_30px_rgba(234,67,53,0.15)]"
+          />
+          {/* Yellow Squircle */}
+          <motion.div
+            animate={{ 
+              rotate: [0, 90, 180, 270, 360],
+              y: [-15, 15, -15]
+            }}
+            transition={{ rotate: { duration: 25, repeat: Infinity, ease: "linear" }, y: { duration: 5, repeat: Infinity, ease: "easeInOut" } }}
+            className="absolute left-[55%] top-[45%] w-[180px] h-[180px] rounded-[50px] bg-gradient-to-br from-[#FBBC05] to-[#F9AB00] shadow-[0_15px_30px_rgba(251,188,5,0.15)]"
+          />
+          {/* Green Pill */}
+          <motion.div
+            animate={{ 
+              y: [20, -20, 20],
+              rotate: [-25, -15, -25]
+            }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-[20%] top-[60%] w-[220px] h-[90px] rounded-full bg-gradient-to-br from-[#34A853] to-[#1E8E3E] shadow-[0_15px_30px_rgba(52,168,83,0.15)]"
+          />
+          
+          {/* Subtle noise/texture overlay for a premium matte feel */}
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
+        </div>
+
         <Link href="/" className="relative z-10 inline-block">
           <img src="/logo.png" alt="Ziro Logo" className="h-8 md:h-10 w-auto object-contain brightness-0 invert scale-[2] md:scale-[2.5] origin-left" />
         </Link>
