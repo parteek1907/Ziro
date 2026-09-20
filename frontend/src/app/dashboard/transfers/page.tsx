@@ -7,6 +7,7 @@ import { checkRecipient, compareRoutes, analyzeRisk, createPayment, executePayme
 import type { RouteOption, RiskAnalysisResponse } from "@/lib/api"
 import Link from "next/link"
 import { useFinance } from "@/lib/FinanceContext"
+import { useSettingsStore } from "@/store/useSettingsStore"
 import NumberFlow from "@number-flow/react"
 
 // ═══════════════════════════════════════════════════════════════
@@ -271,6 +272,7 @@ export default function TransfersPage() {
   const { user } = useAuth()
   const activeUserId = user?.uid || "demo-user-123"
   const { totalBalance, vaultBalance, cardBalance, deductBalance, addTransaction } = useFinance()
+  const performanceMode = useSettingsStore(state => state.appearance.performanceMode)
 
   // ── State Machine ──
   const [step, setStep] = useState<Step>("recipient")
@@ -549,6 +551,7 @@ export default function TransfersPage() {
                 <div className="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight tabular-nums min-h-[72px] flex items-center justify-center">
                   <div className={`flex items-baseline ${amount === "" ? "opacity-30" : "opacity-100"}`}>
                     <NumberFlow 
+                      animated={!performanceMode}
                       value={Number(amount) || 0} 
                       format={{ 
                         style: 'currency', 

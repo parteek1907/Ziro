@@ -206,5 +206,32 @@
       "[2026-09-19T22:40:24.180153] Preparing blockchain transaction.",
       "[2026-09-19T22:40:24.180153] Execution failed: Invalid sender or recipient address"
     ]
+  },
+  {
+    "payment_id": "14a83913-4b65-4818-b4a1-006ff3f4e301",
+    "idempotency_key": "ziro-1789881596592-blpv1sv734w",
+    "user_id": "RCprMRyNfhMDAjm1lRpPIILNCjv1",
+    "payment_intent": "transfer",
+    "sender_address": "0xMockSenderAddress",
+    "recipient_address": "@arjun",
+    "amount": 1.0,
+    "currency": "USD",
+    "chain": "polygon",
+    "state": "SETTLED",
+    "blockchain_tx_id": "poly-14a83913-4b65-4818-b4a1-006ff3f4e301",
+    "blockchain_tx_hash": "0xee631fbcacb9239fe85f85d8d8e2b48d6386104e534f0e69707d900f9e97a79b",
+    "network_fee": 0.001155000001323,
+    "created_at": "2026-09-20T05:20:33.188230Z",
+    "updated_at": "2026-09-20T05:20:35.180338Z",
+    "settled_at": "2026-09-20T05:20:35.180296Z",
+    "audit_trail": [
+      "[2026-09-20T05:20:33.188255] Payment created in system.",
+      "[2026-09-20T05:20:34.002472] Payment requires explicit confirmation. Risk: RiskLevel.LOW. Address Warn: RecipientCheckStatus.WARNING",
+      "[2026-09-20T05:20:34.009174] Preparing blockchain transaction.",
+      "[2026-09-20T05:20:34.814753] Transaction created.",
+      "[2026-09-20T05:20:34.989605] Transaction signed.",
+      "[2026-09-20T05:20:34.989714] Transaction broadcasted with hash 0xee631fbcacb9239fe85f85d8d8e2b48d6386104e534f0e69707d900f9e97a79b.",
+      "[2026-09-20T05:20:35.180333] Blockchain settlement verified successfully."
+    ]
   }
 ]

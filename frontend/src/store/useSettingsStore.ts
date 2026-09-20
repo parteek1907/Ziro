@@ -13,8 +13,10 @@ export interface ProfileSettings {
 }
 
 export interface AppearanceSettings {
-  theme: 'Light' | 'Dark';
+  theme: 'Light' | 'Dark' | 'System';
   reduceAnimations: boolean;
+  language: 'English' | string;
+  performanceMode: boolean;
 }
 
 export interface SecuritySession {
@@ -88,8 +90,10 @@ const DEFAULT_SETTINGS = {
     archetype: 'The Guardian',
   },
   appearance: {
-    theme: 'Light' as const,
+    theme: 'System' as const,
     reduceAnimations: false,
+    language: 'English',
+    performanceMode: false,
   },
   sessions: DEFAULT_SESSIONS,
   privacy: {

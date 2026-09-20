@@ -8,6 +8,8 @@ from app.schemas import (
     BatchSyncRequest,
     BatchSyncResponse,
 )
+from app.db.mock_db import mock_db
+from app.models.payment_execution import PaymentRecord, PaymentState
 
 router = APIRouter(prefix="/api/offline", tags=["Offline Vault & Edge Guard"])
 
@@ -87,12 +89,31 @@ async def sync_offline_batch(req: BatchSyncRequest):
         else:
             PROCESSED_NONCES.add(nonce_key)
             accepted += 1
+            tx_hash = f"0x{secrets.token_hex(32)}"
+            
+            # Save into the connected database for Explorer visibility
+            payment = PaymentRecord(
+                idempotency_key=nonce_key,
+                user_id=item.client_device_id or "unknown",
+                payment_intent="offline_sync",
+                sender_address=item.sender_public_key,
+                recipient_address=item.recipient,
+                amount=item.amount,
+                currency=item.currency,
+                chain="ziro-l2",
+                state=PaymentState.SETTLED,
+                blockchain_tx_hash=tx_hash,
+                created_at=datetime.utcfromtimestamp(item.timestamp).isoformat() + "Z",
+                settled_at=datetime.utcnow().isoformat() + "Z",
+            )
+            mock_db.save_payment(payment)
+            
             results.append({
                 "nonce": item.nonce,
                 "status": "SETTLED_ON_L2",
                 "recipient": item.recipient,
                 "amount": item.amount,
-                "tx_hash": f"0x{secrets.token_hex(32)}",
+                "tx_hash": tx_hash,
             })
 
     batch_hash = f"0x{secrets.token_hex(32)}" if accepted > 0 else None

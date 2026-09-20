@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence, useAnimation } from "framer-motion"
 import { useAuth } from "@/lib/AuthContext"
 import { syncOfflineTransactions } from "@/lib/api"
+import { useFinance } from "@/lib/FinanceContext"
 import type { OfflineTransaction } from "@/lib/api"
 import Link from "next/link"
 
@@ -24,6 +25,7 @@ const springConfig = { type: "spring" as const, stiffness: 300, damping: 24 }
 
 export default function VaultPage() {
   const { user } = useAuth()
+  const { addTransaction, deductBalance } = useFinance()
 
   const [isOnline, setIsOnline]       = useState(true)
   const [queue, setQueue]             = useState<OfflineTransaction[]>([])
@@ -56,6 +58,52 @@ export default function VaultPage() {
 
 
 
+  const handleSync = useCallback(async () => {
+    if (syncing || queue.length === 0) return
+    setSyncing(true)
+    try {
+      // Simulate network delay for UX visualization
+      await new Promise(r => setTimeout(r, 1200))
+
+      const result = await syncOfflineTransactions({
+        transactions: queue,
+        device_id: user?.uid || "demo-user-123",
+      })
+      setSyncResult({ synced: result.synced, failed: result.failed })
+      
+      const successfulIds = result.results.filter((r) => r.status === "success").map((r) => r.id)
+      const successfulTxs = queue.filter((tx) => successfulIds.includes(tx.id))
+      
+      successfulTxs.forEach((tx) => {
+        addTransaction({
+          id: tx.id,
+          type: "Transfer (Offline)",
+          to: tx.recipient,
+          route: `${tx.currency} (Vault)`,
+          amount: `-$${tx.amount.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})}`,
+          status: "Completed",
+          time: "Just now",
+          ref: `ZR-OFF-${tx.id.substring(8, 12)}`
+        })
+        if (tx.currency === "USD") {
+          deductBalance(tx.amount)
+        }
+      })
+
+      const failedIds = result.results.filter((r) => r.status !== "success").map((r) => r.id)
+      const remaining = queue.filter((tx) => failedIds.includes(tx.id))
+      setQueue(remaining)
+      saveQueue(remaining)
+      setLastSynced(new Date().toLocaleTimeString())
+    } catch {
+      setSyncResult({ synced: 0, failed: queue.length })
+    } finally {
+      setSyncing(false)
+      // Hide result after 4 seconds
+      setTimeout(() => setSyncResult(null), 4000)
+    }
+  }, [user, syncing, queue, addTransaction, deductBalance])
+
   const queueTransaction = useCallback(() => {
     if (!recipient.trim() || !amount) return
     const tx: OfflineTransaction = {
@@ -70,41 +118,18 @@ export default function VaultPage() {
     setQueue(updated)
     saveQueue(updated)
     setRecipient(""); setAmount(""); setNote("")
-  }, [recipient, amount, currency, note, queue])
-
-  const handleSync = useCallback(async () => {
-    if (!user || syncing || queue.length === 0) return
-    setSyncing(true)
-    try {
-      // Simulate network delay for UX visualization
-      await new Promise(r => setTimeout(r, 1200))
-
-      const result = await syncOfflineTransactions({
-        transactions: queue,
-        device_id: user.uid,
-      })
-      setSyncResult({ synced: result.synced, failed: result.failed })
-      
-      const failedIds = result.results.filter((r) => r.status !== "success").map((r) => r.id)
-      const remaining = queue.filter((tx) => failedIds.includes(tx.id))
-      setQueue(remaining)
-      saveQueue(remaining)
-      setLastSynced(new Date().toLocaleTimeString())
-    } catch {
-      setSyncResult({ synced: 0, failed: queue.length })
-    } finally {
-      setSyncing(false)
-      // Hide result after 4 seconds
-      setTimeout(() => setSyncResult(null), 4000)
+    if (isOnline) {
+      setTimeout(handleSync, 100)
     }
-  }, [user, syncing, queue])
+  }, [recipient, amount, currency, note, queue, isOnline, handleSync])
 
   // Auto-sync when coming back online
   useEffect(() => {
     if (isOnline && queue.length > 0) {
       handleSync()
     }
-  }, [isOnline, handleSync, queue.length])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline])
   const removeFromQueue = (id: string) => {
     const updated = queue.filter((tx) => tx.id !== id)
     setQueue(updated)
@@ -213,6 +238,18 @@ export default function VaultPage() {
                     )}
                   </motion.button>
                 </div>
+                {!syncing && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { setQueue([]); saveQueue([]); }}
+                    className="w-full mt-3 text-slate-500 font-bold text-sm px-5 py-3 rounded-full transition-colors flex items-center justify-center hover:bg-slate-100 hover:text-slate-800"
+                  >
+                    Cancel Queue
+                  </motion.button>
+                )}
                 {!isOnline && <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider text-center mt-4">Waiting for network connection</p>}
               </motion.div>
             )}

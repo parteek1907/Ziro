@@ -144,6 +144,22 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
+                <div className="space-y-2">
+                  <label className="text-slate-700 text-sm font-semibold">Performance Mode</label>
+                  <div className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <span className="text-sm text-slate-800 font-medium">Compact Layout</span>
+                    <button 
+                      onClick={() => updateAppearance({ performanceMode: !appearance.performanceMode })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        appearance.performanceMode ? 'bg-[#35E58A]' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        appearance.performanceMode ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

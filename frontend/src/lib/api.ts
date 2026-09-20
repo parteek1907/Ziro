@@ -249,10 +249,32 @@ export async function chatWithMentor(payload: {
 export async function syncOfflineTransactions(
   payload: OfflineSyncRequest
 ): Promise<OfflineSyncResponse> {
-  return request<OfflineSyncResponse>("/api/offline/sync", {
+  const backendPayload = {
+    payloads: payload.transactions.map((tx, index) => ({
+      sender_public_key: payload.device_id || "demo-user",
+      recipient: tx.recipient,
+      amount: tx.amount,
+      currency: tx.currency,
+      nonce: Math.floor(Date.now() / 1000) + index,
+      timestamp: Math.floor(new Date(tx.queued_at).getTime() / 1000),
+      signature: "mock_signature_for_demo",
+      client_device_id: payload.device_id || "demo-user",
+    }))
+  }
+
+  const response = await request<any>("/api/offline/sync", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(backendPayload),
   })
+
+  return {
+    synced: response.accepted_count || 0,
+    failed: response.rejected_count || 0,
+    results: response.results?.map((r: any, index: number) => ({
+      id: payload.transactions[index].id,
+      status: r.status === "SETTLED_ON_L2" ? "success" : "failed"
+    })) || []
+  }
 }
 
 /** Connect a blockchain wallet */

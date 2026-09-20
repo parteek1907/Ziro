@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "AI-driven, zero-bandwidth, zero-knowledge financial platform.",
 };
 
+import { PerformanceProvider } from "@/components/PerformanceProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,9 +30,11 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased min-h-screen flex flex-col bg-white">
         <ErrorSuppressor />
-        <AuthProvider>
-          <main className="flex-grow">{children}</main>
-        </AuthProvider>
+        <PerformanceProvider>
+          <AuthProvider>
+            <main className="flex-grow">{children}</main>
+          </AuthProvider>
+        </PerformanceProvider>
       </body>
     </html>
   );

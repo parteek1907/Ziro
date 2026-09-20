@@ -75,7 +75,7 @@ export default function ExplorerPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="bg-white/80 border border-slate-200 rounded-2xl p-6 backdrop-blur-md shadow-sm">
             <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Latest Block</div>
-            <div className="text-3xl font-bold font-mono">{latestBlock.toLocaleString()}</div>
+            <div className="text-3xl font-bold font-mono suppress-hydration-warning" suppressHydrationWarning>{latestBlock.toLocaleString("en-US")}</div>
           </div>
           <div className="bg-white/80 border border-slate-200 rounded-2xl p-6 backdrop-blur-md shadow-sm">
             <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Network TPS</div>

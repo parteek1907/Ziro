@@ -80,7 +80,7 @@ export default function DashboardLayout({
     <div className="h-screen w-full relative flex overflow-hidden bg-[#e0e5e0] font-sans transition-colors duration-300" data-dark-shell>
       
       {/* Ambient Background */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none ambient-bg">
         <div className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] rounded-full bg-[#fdf5ed]/80 blur-[120px]"></div>
         <div className="absolute top-[20%] right-[-20%] w-[900px] h-[900px] rounded-full bg-[#394a48]/20 blur-[150px]"></div>
         <div className="absolute -bottom-[20%] left-[10%] w-[700px] h-[700px] rounded-full bg-[#9fada8]/30 blur-[140px]"></div>
@@ -92,22 +92,22 @@ export default function DashboardLayout({
       <div className="relative z-10 w-full h-full bg-white/40 backdrop-blur-3xl flex overflow-hidden transition-colors duration-300" data-dark-card>
         
         {/* Sidebar */}
-        <aside className="w-[280px] bg-black/5 border-r border-white/30 flex flex-col justify-between hidden md:flex shrink-0 transition-colors duration-300" data-dark-sidebar>
+        <aside className="w-[280px] bg-black/20 border-r border-black/10 flex flex-col justify-between hidden md:flex shrink-0 transition-colors duration-300" data-dark-sidebar>
           <div>
-            <div className="h-24 flex items-center justify-center pt-2 pr-16">
-              <Link href="/dashboard" className="flex items-center justify-center">
-                <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-center" data-dark-logo />
+            <div className="h-24 flex items-center px-6 pt-2 compact-px">
+              <Link href="/dashboard" className="flex items-center">
+                <img src="/logo.png" alt="Ziro Logo" className="h-12 w-auto object-contain brightness-0 opacity-90 scale-[3] origin-left" data-dark-logo />
               </Link>
             </div>
             
-            <nav className="px-6 py-2 space-y-1.5">
+            <nav className="px-6 py-2 space-y-1.5 compact-px compact-py">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-semibold text-sm ${
+                    className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-semibold text-sm compact-nav-item ${
                       isActive 
                         ? "bg-white/80 text-slate-900 shadow-sm shadow-black/5" 
                         : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
@@ -124,13 +124,13 @@ export default function DashboardLayout({
           </div>
 
           <div className="px-6 pb-8 space-y-1.5">
-            <Link href="/dashboard/help" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all">
+            <Link href="/dashboard/help" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all compact-nav-item">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
                 <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>
               </svg>
               Help Center
             </Link>
-            <Link href="/dashboard/settings" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all">
+            <Link href="/dashboard/settings" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-white/40 font-semibold text-sm transition-all compact-nav-item">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.5a2 2 0 0 1-1 1.72l-.15.1a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
               </svg>
@@ -139,7 +139,7 @@ export default function DashboardLayout({
             
             <button 
               onClick={() => setShowLogoutModal(true)} 
-              className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:text-red-600 hover:bg-red-50/50 font-semibold text-sm transition-all"
+              className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:text-red-600 hover:bg-red-50/50 font-semibold text-sm transition-all compact-nav-item"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>

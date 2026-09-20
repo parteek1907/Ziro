@@ -104,3 +104,38 @@ body {
 
 /* Shadows */
 .dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }
+
+/* Performance Mode / Compact Layout */
+body.performance-mode .ambient-bg {
+  display: none !important;
+}
+
+body.performance-mode * {
+  /* Disable infinite heavy animations if they exist */
+  animation-iteration-count: 1 !important;
+}
+
+/* Compact layout padding overrides */
+body.performance-mode .compact-p {
+  padding: 1rem !important;
+}
+
+body.performance-mode .compact-py {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+body.performance-mode .compact-px {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+body.performance-mode .compact-gap {
+  gap: 1rem !important;
+}
+
+body.performance-mode .compact-nav-item {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 0.25rem !important;
+}
