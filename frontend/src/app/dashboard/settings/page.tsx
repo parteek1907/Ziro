@@ -149,8 +149,8 @@ export default function SettingsPage() {
 
                 <div className="space-y-2 flex flex-col">
                   <label className="text-slate-700 text-sm font-semibold">Performance Mode</label>
-                  <div className="w-full bg-white border border-slate-200 rounded-[18px] px-5 py-3 flex items-center justify-between h-full max-h-[50px]">
-                    <span className="text-sm text-slate-800 font-medium">Compact Layout</span>
+                  <div className="inline-flex bg-white border border-slate-200 rounded-2xl px-5 py-2.5 gap-6 items-center self-start">
+                    <span className="text-sm text-slate-800 font-medium whitespace-nowrap">Compact Layout</span>
                     <button 
                       onClick={() => updateAppearance({ performanceMode: !appearance.performanceMode })}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 transition-colors ${
