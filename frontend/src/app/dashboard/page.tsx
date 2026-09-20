@@ -56,7 +56,7 @@ function StatCard({
           </div>
         )}
       </div>
-      <div>
+      <div className="flex-1 flex flex-col justify-center">
         {loading ? (
           <>
             <Skeleton className="w-36 h-10 mb-2" />
@@ -322,27 +322,31 @@ export default function DashboardOverview() {
 
           <div className="bg-white/60 backdrop-blur-md rounded-[28px] border border-white/50 overflow-hidden shadow-sm flex-1 p-2">
             <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-black/5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <div className="col-span-2">TYPE</div>
-              <div className="col-span-4">TRANSACTION</div>
+              <div className="col-span-1">TYPE</div>
+              <div className="col-span-3">RECIPIENT</div>
               <div className="col-span-2">ROUTE</div>
+              <div className="col-span-2">REF</div>
               <div className="col-span-2">TIME</div>
-              <div className="col-span-2 text-right">STATUS</div>
+              <div className="col-span-1 text-right">AMOUNT</div>
+              <div className="col-span-1 text-right">STATUS</div>
             </div>
 
             <div className="divide-y divide-black/5">
               {transactions.slice(0, 4).map((tx) => (
                 <div key={tx.id} className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-white/40 transition-colors cursor-pointer rounded-2xl mx-1 my-1">
-                  <div className="col-span-2 text-xs font-bold text-slate-700">{tx.type}</div>
-                  <div className="col-span-4">
-                    <div className="text-slate-800 font-bold text-xs mb-0.5">{tx.to}</div>
-                  </div>
+                  <div className="col-span-1 text-xs font-bold text-slate-600">{tx.type}</div>
+                  <div className="col-span-3 text-xs font-bold text-slate-800">{tx.to}</div>
                   <div className="col-span-2 text-xs text-slate-500 font-medium">{tx.route}</div>
+                  <div className="col-span-2 text-xs text-slate-400 font-medium">{tx.ref}</div>
                   <div className="col-span-2 text-xs text-slate-500 font-medium">{tx.time}</div>
-                  <div className="col-span-2 flex justify-end">
+                  <div className={`col-span-1 text-xs font-bold text-right ${tx.amount.startsWith("+") ? "text-emerald-600" : "text-slate-800"}`}>{tx.amount}</div>
+                  <div className="col-span-1 flex justify-end">
                     {tx.status === "Completed" ? (
                       <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full">Completed</span>
+                    ) : tx.status === "Pending" ? (
+                      <span className="bg-amber-100 text-amber-600 text-[10px] font-bold px-3 py-1 rounded-full">Pending</span>
                     ) : (
-                      <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full">Pending</span>
+                      <span className="bg-red-100 text-red-500 text-[10px] font-bold px-3 py-1 rounded-full">Failed</span>
                     )}
                   </div>
                 </div>
