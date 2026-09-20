@@ -1,18 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/AuthContext"
 import { FinanceProvider } from "@/lib/FinanceContext"
-
+import { useState } from "react"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
+  const router = useRouter()
+  
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   
   const displayName = user?.displayName || "User"
   const email = user?.email || ""
@@ -27,18 +30,21 @@ export default function DashboardLayout({
     { name: "Hire a Consultant", href: "/dashboard/consultants", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
   ]
 
+  const handleLogout = async () => {
+    setShowLogoutModal(false)
+    await logout()
+    router.push("/")
+  }
+
   return (
     <div className="h-screen w-full relative flex overflow-hidden bg-[#e0e5e0] font-sans">
       
       {/* Ambient Background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Soft, warm blurred spots resembling the reference background */}
         <div className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] rounded-full bg-[#fdf5ed]/80 blur-[120px]"></div>
         <div className="absolute top-[20%] right-[-20%] w-[900px] h-[900px] rounded-full bg-[#394a48]/20 blur-[150px]"></div>
         <div className="absolute -bottom-[20%] left-[10%] w-[700px] h-[700px] rounded-full bg-[#9fada8]/30 blur-[140px]"></div>
         <div className="absolute bottom-[10%] right-[30%] w-[600px] h-[600px] rounded-full bg-[#e3cdbe]/40 blur-[120px]"></div>
-        
-        {/* Faint subtle grid texture over the ambient light */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
@@ -92,11 +98,7 @@ export default function DashboardLayout({
             </Link>
             
             <button 
-              onClick={() => {
-                if (window.confirm("Are you sure you want to log out?")) {
-                  useAuth().logout()
-                }
-              }} 
+              onClick={() => setShowLogoutModal(true)} 
               className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-red-500 hover:text-red-600 hover:bg-red-50/50 font-semibold text-sm transition-all"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
@@ -134,6 +136,35 @@ export default function DashboardLayout({
             </FinanceProvider>
           </div>
         </main>
+
+        {/* Logout Modal */}
+        {showLogoutModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white/80 backdrop-blur-xl border border-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center">
+              <div className="w-16 h-16 rounded-full bg-red-100 mx-auto flex items-center justify-center mb-6">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Log out of ZIRO?</h3>
+              <p className="text-sm text-slate-500 mb-8">You will need to sign back in to access your wallet and perform transfers.</p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 px-4 py-3 rounded-2xl font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="flex-1 px-4 py-3 rounded-2xl font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
