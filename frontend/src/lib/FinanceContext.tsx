@@ -103,14 +103,28 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           setVaultBalance(Math.max(0, total - 12400))
         }
 
-        const storedTx = localStorage.getItem("ziro_transactions_v2")
         if (storedTx) {
           let parsedTx = JSON.parse(storedTx);
+          
+          let lastTimeStr = "";
+          let duplicateCount = 0;
+          
           parsedTx = parsedTx.map((tx: any) => {
             let newTime = tx.time;
             if (!newTime.includes("T")) {
               newTime = new Date().toISOString();
             }
+            
+            // Stagger duplicate times so they don't all say '3 min ago'
+            if (newTime === lastTimeStr) {
+              duplicateCount++;
+              // stagger by 45 minutes for each duplicate
+              newTime = new Date(new Date(newTime).getTime() - duplicateCount * 45 * 60 * 1000).toISOString();
+            } else {
+              lastTimeStr = newTime;
+              duplicateCount = 0;
+            }
+
             let newRoute = tx.route;
             if (newRoute.includes("→")) newRoute = newRoute.split("→")[0].trim();
             if (newRoute.includes("->")) newRoute = newRoute.split("->")[0].trim();
