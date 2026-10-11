@@ -1,4 +1,4 @@
-# 🌍 Prayas — Future Finance: AI for Good
+# 🌍 Ziro — Future Finance: AI for Good
 
 <div align="center">
 
@@ -21,7 +21,7 @@
 
 ## 📌 Project Overview
 
-**Prayas** is an integrated financial platform built around three core pillars to solve the biggest challenges in global financial inclusion: **Faster & Cheaper Remittances**, **Alternative Credit Scoring**, and **Zero-Connectivity Resilience**.
+**Ziro** is an integrated financial platform built around three core pillars to solve the biggest challenges in global financial inclusion: **Faster & Cheaper Remittances**, **Alternative Credit Scoring**, and **Zero-Connectivity Resilience**.
 
 By unifying **L2 stablecoin micro-remittances**, an **AI-powered behavioral credit scoring engine (TrustScore)**, and a **cryptographically signed offline WebCrypto vault**, the platform proves that technology can eliminate high remittance fees, grant collateral-free credit, and operate reliably even in regions with no cellular data connectivity.
 
@@ -114,7 +114,7 @@ Mesh Relay node scans and settles transaction on-chain later
 ## 📁 Repository Structure
 
 ```
-Prayas/
+Ziro/
 ├── Ziro/                  # Next.js 16 + React 19 + Tailwind CSS Frontend
 │   ├── src/
 │   │   ├── app/           # App router pages & styles
